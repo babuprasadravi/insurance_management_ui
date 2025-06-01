@@ -43,7 +43,10 @@ export const Navbar = () => {
             >
               Pricing
             </a> */}
-            <button className="px-6 py-2 text-indigo-600 hover:text-indigo-700 font-semibold">
+            <button
+              className="px-6 py-2 text-indigo-600 hover:text-indigo-700 font-semibold"
+              onClick={() => navigate("/login")}
+            >
               Login
             </button>
             <button

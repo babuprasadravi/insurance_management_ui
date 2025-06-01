@@ -4,6 +4,7 @@ import "./App.css";
 import { CustomerLandingPage } from "./components/landing_pages/CustomerLandingPage";
 import { features } from "./constants/data";
 import { SignupPage } from "./components/ui/Signup";
+import { LoginPage } from "./components/ui/Login";
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
       <Routes>
         <Route path="/" element={<CustomerLandingPage features={features} />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/login" element={<LoginPage />} />
       </Routes>
     </Router>
   );
