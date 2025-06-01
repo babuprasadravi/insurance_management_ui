@@ -1,13 +1,11 @@
 import { useState } from "react";
 import "./App.css";
+import { CustomerLandingPage } from "./components/landing_pages/CustomerLandingPage";
+import { features } from "./constants/data";
 
 function App() {
-  const [count, setCount] = useState(0);
-
   return (
-    <>
-      <h1 className="text-3xl font-bold underline">Hello world!</h1>
-    </>
+    <CustomerLandingPage features={features} />
   );
 }
 
