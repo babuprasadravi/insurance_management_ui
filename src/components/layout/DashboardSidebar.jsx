@@ -30,6 +30,11 @@ const menuItems = [
     icon: DocumentTextIcon,
     path: "/dashboard/file-claim",
   },
+  {
+    name: "My Claims",
+    icon: DocumentTextIcon, // Make sure to import this icon DocumentDuplicateIcon
+    path: "/dashboard/claims",
+  },
   { name: "Notifications", icon: BellIcon, path: "/dashboard/notifications" },
 ];
 

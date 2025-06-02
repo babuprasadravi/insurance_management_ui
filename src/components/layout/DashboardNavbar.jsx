@@ -24,10 +24,9 @@ export const DashboardNavbar = () => {
   return (
     <div className="bg-white shadow-sm px-6 py-3 flex justify-between items-center">
       {/* Company Name/Logo */}
-      <div className="flex items-center">
+      <div className="flex items-center" onClick={() => navigate("/dashboard")}>
         <h1 className="text-xl font-semibold text-slate-700">SecureWheel</h1>
       </div>
-
       {/* Right Side Items */}
       <div className="flex items-center space-x-6">
         {/* Notifications */}
@@ -97,7 +96,7 @@ export const DashboardNavbar = () => {
           {showProfileMenu && (
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-50 border border-slate-100">
               <div className="py-2">
-              <button
+                <button
                   onClick={() => navigate("/dashboard/settings")}
                   className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center space-x-2"
                 >
