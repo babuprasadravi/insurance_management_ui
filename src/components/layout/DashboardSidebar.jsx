@@ -9,36 +9,9 @@ import {
   ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 
-const menuItems = [
-  {
-    name: "Profile",
-    icon: UserCircleIcon,
-    path: "/dashboard/settings",
-  },
-  {
-    name: "Browse Policies",
-    icon: DocumentTextIcon,
-    path: "/dashboard/browse-policies",
-  },
-  {
-    name: "My Policies",
-    icon: ClipboardDocumentListIcon,
-    path: "/dashboard/my-policies",
-  },
-  {
-    name: "File a Claim",
-    icon: DocumentTextIcon,
-    path: "/dashboard/file-claim",
-  },
-  {
-    name: "My Claims",
-    icon: DocumentTextIcon, // Make sure to import this icon DocumentDuplicateIcon
-    path: "/dashboard/claims",
-  },
-  { name: "Notifications", icon: BellIcon, path: "/dashboard/notifications" },
-];
 
-export const DashboardSidebar = ({ collapsed, setCollapsed }) => {
+
+export const DashboardSidebar = ({ collapsed, setCollapsed, menuItems}) => {
   const location = useLocation();
   const navigate = useNavigate();
 

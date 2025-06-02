@@ -6,7 +6,7 @@ import {
 import { DashboardLayout } from "../layout/DashboardLayout";
 import { OverviewCard } from "../ui/OverviewCard";
 import { WelcomeBanner } from "../ui/WelcomeBanner";
-
+import { customerMenuItems } from "../../constants/data";
 export const CustomerDashboard = () => {
   const customer = {
     name: "Arul",
@@ -15,7 +15,7 @@ export const CustomerDashboard = () => {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout menuItems={customerMenuItems}>
       {/* Welcome Banner */}
       <WelcomeBanner customer={customer} />
 

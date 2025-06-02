@@ -16,6 +16,7 @@ const validationSchema = Yup.object({
   password: Yup.string()
     .min(8, "Password must be at least 8 characters")
     .required("Password is required"),
+  isAgent: Yup.boolean(),
 });
 
 export const SignupPage = () => {
@@ -94,7 +95,20 @@ export const SignupPage = () => {
                       type="password"
                       placeholder="••••••••"
                     />
-
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="isAgent"
+                        name="isAgent"
+                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                      />
+                      <label
+                        htmlFor="isAgent"
+                        className="text-sm text-gray-600"
+                      >
+                        Create an Agent Account
+                      </label>
+                    </div>
                     <button
                       type="submit"
                       disabled={isSubmitting}

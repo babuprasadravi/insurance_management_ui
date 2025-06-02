@@ -2,7 +2,7 @@ import { useState } from "react";
 import { DashboardSidebar } from "./DashboardSidebar";
 import { DashboardNavbar } from "./DashboardNavbar";
 
-export const DashboardLayout = ({ children }) => {
+export const DashboardLayout = ({ menuItems, children }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
@@ -10,6 +10,7 @@ export const DashboardLayout = ({ children }) => {
       <DashboardSidebar
         collapsed={sidebarCollapsed}
         setCollapsed={setSidebarCollapsed}
+        menuItems={menuItems}
       />
       <div
         className={`flex-1 transition-all duration-300 ${
