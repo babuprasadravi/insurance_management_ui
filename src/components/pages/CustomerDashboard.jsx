@@ -5,6 +5,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { DashboardLayout } from "../layout/DashboardLayout";
 import { OverviewCard } from "../ui/OverviewCard";
+import { WelcomeBanner } from "../ui/WelcomeBanner";
 
 export const CustomerDashboard = () => {
   const customer = {
@@ -16,12 +17,7 @@ export const CustomerDashboard = () => {
   return (
     <DashboardLayout>
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl p-6 mb-6 shadow-lg">
-        <h1 className="text-2xl font-semibold">
-          Welcome back, {customer.name}
-        </h1>
-        <p className="text-blue-100 mt-1">Here's your insurance overview</p>
-      </div>
+      <WelcomeBanner customer={customer} />
 
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

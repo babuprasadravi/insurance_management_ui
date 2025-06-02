@@ -6,6 +6,7 @@ import { features } from "./constants/data";
 import { SignupPage } from "./components/ui/Signup";
 import { LoginPage } from "./components/ui/Login";
 import { CustomerDashboard } from "./components/pages/CustomerDashboard";
+import { Profile } from "./components/pages/Profile";
 
 function App() {
   return (
@@ -16,7 +17,7 @@ function App() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/dashboard" element={<CustomerDashboard />} />
-        <Route path="/dashboard/settings" element={<CustomerDashboard />} />
+        <Route path="/dashboard/settings" element={<Profile />} />
         <Route
           path="/dashboard/browse-policies"
           element={<CustomerDashboard />}

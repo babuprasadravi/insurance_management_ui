@@ -11,7 +11,7 @@ import {
 
 const menuItems = [
   {
-    name: "Account Settings",
+    name: "Profile",
     icon: UserCircleIcon,
     path: "/dashboard/settings",
   },
