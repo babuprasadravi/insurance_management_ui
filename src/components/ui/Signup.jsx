@@ -22,35 +22,44 @@ const validationSchema = Yup.object({
 
 export const SignupPage = () => {
   const navigate = useNavigate();
-  const handleSubmit = async (values, { resetForm, setSubmitting }) => {
-    try {
-      const formData = {
-        username: values.name,
-        email: values.email,
-        password: values.password,
-        role: values.isAgent ? "AGENT" : "CUSTOMER",
-        phonenumber: values.phone,
-      };
+const handleSubmit = async (values, { resetForm, setSubmitting }) => {
+  try {
+    const formData = {
+      username: values.name,
+      email: values.email,
+      password: values.password,
+      role: values.isAgent ? "AGENT" : "CUSTOMER",
+      phonenumber: values.phone,
+    };
 
-      const response = await axios.post(
-        "http://localhost:8080/auth/register",
-        formData
-      );
+    const response = await axios.post(
+      "http://localhost:8087/auth/register",
+      formData
+    );
 
-      if (response.data) {
-        toast.success("Registration successful!");
-        resetForm();
-        navigate("/login"); // Redirect to login page after successful registration
-      }
-    } catch (error) {
-      const errorMessage =
-        error.response?.data?.message ||
-        "Registration failed. Please try again.";
-      toast.error(errorMessage);
-    } finally {
-      setSubmitting(false);
+    if (response.data) {
+      toast.success("Registration successful!");
+      resetForm();
+      navigate("/login");
     }
-  };
+  } catch (error) {
+    console.error("Registration error:", error.response?.data);
+    
+    let errorMessage = "Registration failed. Please try again.";
+    
+    if (error.response?.status === 409) {
+      errorMessage = "An account with this email already exists. Please use a different email or try logging in.";
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.response?.data?.error) {
+      errorMessage = error.response.data.error;
+    }
+    
+    toast.error(errorMessage);
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   return (
     <>

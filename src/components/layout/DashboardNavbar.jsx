@@ -5,11 +5,13 @@ import {
   ChevronDownIcon,
 } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthProvider";
 
 export const DashboardNavbar = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const notifications = [
     { id: 1, message: "Your claim has been approved", date: "2h ago" },
@@ -17,16 +19,16 @@ export const DashboardNavbar = () => {
   ];
 
   const handleLogout = () => {
-    // Add logout logic here
-    navigate("/login");
+    logout();
   };
 
   return (
     <div className="bg-white shadow-sm px-6 py-3 flex justify-between items-center">
       {/* Company Name/Logo */}
-      <div className="flex items-center" onClick={() => navigate("/dashboard")}>
+      <div className="flex items-center cursor-pointer" onClick={() => navigate("/dashboard")}>
         <h1 className="text-xl font-semibold text-slate-700">SecureWheel</h1>
       </div>
+
       {/* Right Side Items */}
       <div className="flex items-center space-x-6">
         {/* Notifications */}
@@ -87,8 +89,8 @@ export const DashboardNavbar = () => {
           >
             <UserCircleIcon className="h-8 w-8 text-slate-600" />
             <div className="hidden md:block text-left">
-              <p className="text-sm font-medium text-slate-700">Arul</p>
-              <p className="text-xs text-slate-500">Customer</p>
+              <p className="text-sm font-medium text-slate-700">{user?.username || 'User'}</p>
+              <p className="text-xs text-slate-500">{user?.role || 'Customer'}</p>
             </div>
             <ChevronDownIcon className="h-4 w-4 text-slate-400" />
           </button>
@@ -97,7 +99,7 @@ export const DashboardNavbar = () => {
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-50 border border-slate-100">
               <div className="py-2">
                 <button
-                  onClick={() => navigate("/dashboard/settings")}
+                  onClick={() => navigate(user?.role === 'AGENT' ? "/agentDashboard/profile" : "/dashboard/settings")}
                   className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center space-x-2"
                 >
                   <span>Profile</span>

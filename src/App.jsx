@@ -21,6 +21,8 @@ import { CreatePolicy } from "./components/pages/CreatePolicy";
 import { AgentPolicies } from "./components/pages/AgentPolicies";
 import { ClaimsQueue } from "./components/pages/ClaimsQueue";
 import { AgentProfile } from "./components/pages/agentProfile";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { AuthProvider } from "./context/AuthProvider";
 
 function App() {
   return (
@@ -28,47 +30,126 @@ function App() {
       <ClaimProvider>
         <AgentProvider>
           <Router>
-            <Toaster position="top-right" />
-            <Routes>
-              <Route
-                path="/"
-                element={<CustomerLandingPage features={features} />}
-              />
-              <Route path="/signup" element={<SignupPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/dashboard" element={<CustomerDashboard />} />
-              <Route path="/dashboard/settings" element={<Profile />} />
-              <Route
-                path="/dashboard/browse-policies"
-                element={<BrowsePolicies />}
-              />
-              <Route
-                path="/dashboard/policy-application"
-                element={<PolicyApplicationForm />}
-              />
-              <Route path="/dashboard/my-policies" element={<MyPolicies />} />
-              <Route path="/dashboard/file-claim" element={<FileClaimForm />} />
-              <Route path="/dashboard/claims" element={<MyClaims />} />
-              <Route
-                path="/dashboard/notifications"
-                element={<CustomerDashboard />}
-              />
-              <Route path="/agentDashboard" element={<AgentDashboard />} />
-              <Route
-              path="/agentDashboard/customers"
-              element={<AssignedCustomers />}
-            />
-            <Route
-              path="/agentDashboard/create-policy"
-              element={<CreatePolicy />}
-            />
-            <Route
-              path="/agentDashboard/policies"
-              element={<AgentPolicies />}
-            />
-            <Route path="/agentDashboard/claims" element={<ClaimsQueue />} />
-            <Route path="/agentDashboard/profile" element={<AgentProfile />} />
-            </Routes>
+            <AuthProvider>
+              <Toaster position="top-right" />
+              <Routes>
+                {/* Public Routes */}
+                <Route
+                  path="/"
+                  element={<CustomerLandingPage features={features} />}
+                />
+                <Route path="/signup" element={<SignupPage />} />
+                <Route path="/login" element={<LoginPage />} />
+
+                {/* Customer Protected Routes */}
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute allowedRoles={['CUSTOMER']}>
+                      <CustomerDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/dashboard/settings"
+                  element={
+                    <ProtectedRoute allowedRoles={['CUSTOMER']}>
+                      <Profile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/dashboard/browse-policies"
+                  element={
+                    <ProtectedRoute allowedRoles={['CUSTOMER']}>
+                      <BrowsePolicies />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/dashboard/policy-application"
+                  element={
+                    <ProtectedRoute allowedRoles={['CUSTOMER']}>
+                      <PolicyApplicationForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/dashboard/my-policies"
+                  element={
+                    <ProtectedRoute allowedRoles={['CUSTOMER']}>
+                      <MyPolicies />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/dashboard/file-claim"
+                  element={
+                    <ProtectedRoute allowedRoles={['CUSTOMER']}>
+                      <FileClaimForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/dashboard/claims"
+                  element={
+                    <ProtectedRoute allowedRoles={['CUSTOMER']}>
+                      <MyClaims />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Agent Protected Routes */}
+                <Route
+                  path="/agentDashboard"
+                  element={
+                    <ProtectedRoute allowedRoles={['AGENT']}>
+                      <AgentDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/agentDashboard/customers"
+                  element={
+                    <ProtectedRoute allowedRoles={['AGENT']}>
+                      <AssignedCustomers />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/agentDashboard/create-policy"
+                  element={
+                    <ProtectedRoute allowedRoles={['AGENT']}>
+                      <CreatePolicy />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/agentDashboard/policies"
+                  element={
+                    <ProtectedRoute allowedRoles={['AGENT']}>
+                      <AgentPolicies />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/agentDashboard/claims"
+                  element={
+                    <ProtectedRoute allowedRoles={['AGENT']}>
+                      <ClaimsQueue />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/agentDashboard/profile"
+                  element={
+                    <ProtectedRoute allowedRoles={['AGENT']}>
+                      <AgentProfile />
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </AuthProvider>
           </Router>
         </AgentProvider>
       </ClaimProvider>

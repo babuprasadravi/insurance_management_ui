@@ -1,9 +1,10 @@
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
-import { toast } from "react-hot-toast";
 import { FormInput } from "../components/FormInput";
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useAuth } from "../../context/AuthProvider";
 
 const validationSchema = Yup.object({
   email: Yup.string()
@@ -14,17 +15,26 @@ const validationSchema = Yup.object({
 
 export const LoginPage = () => {
   const navigate = useNavigate();
-  const handleSubmit = (values, { resetForm }) => {
-    if (
-      values.email === "customer@gmail.com" &&
-      values.password === "customer123"
-    ) {
-      toast.success("Login successful!");
-      navigate("/dashboard");
-    } else {
-      toast.error("Invalid email or password!");
+  const { login, isAuthenticated, user } = useAuth();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated()) {
+      const redirectPath = user?.role === 'AGENT' ? '/agentDashboard' : '/dashboard';
+      navigate(redirectPath, { replace: true });
     }
-    resetForm();
+  }, [isAuthenticated, user, navigate]);
+
+  const handleSubmit = async (values, { setSubmitting, resetForm }) => {
+    setSubmitting(true);
+    
+    const result = await login(values.email, values.password);
+    
+    if (!result.success) {
+      resetForm();
+    }
+    
+    setSubmitting(false);
   };
 
   return (
@@ -35,7 +45,7 @@ export const LoginPage = () => {
             {/* Left side - Form */}
             <div className="bg-white rounded-xl shadow-lg p-6">
               <div
-                className="flex items-center justify-center space-x-2 mb-6"
+                className="flex items-center justify-center space-x-2 mb-6 cursor-pointer"
                 onClick={() => navigate("/")}
               >
                 <svg
@@ -86,9 +96,19 @@ export const LoginPage = () => {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full bg-indigo-600 text-white py-2.5 px-4 rounded-lg hover:bg-indigo-700 transition duration-200 disabled:opacity-70"
+                      className="w-full bg-indigo-600 text-white py-2.5 px-4 rounded-lg hover:bg-indigo-700 transition duration-200 disabled:opacity-70 flex items-center justify-center"
                     >
-                      Sign In
+                      {isSubmitting ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Signing In...
+                        </>
+                      ) : (
+                        'Sign In'
+                      )}
                     </button>
                   </Form>
                 )}
@@ -103,6 +123,15 @@ export const LoginPage = () => {
                   Sign up
                 </Link>
               </p>
+
+              {/* Demo Credentials */}
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm font-medium text-gray-700 mb-2">Demo Credentials:</p>
+                <div className="text-xs text-gray-600 space-y-1">
+                  <p><strong>Customer:</strong> customer@gmail.com / customer123</p>
+                  <p><strong>Agent:</strong> agent@gmail.com / babu1234</p>
+                </div>
+              </div>
             </div>
 
             {/* Right side - Content */}
