@@ -1,4 +1,5 @@
-import { Formik, Form } from "formik";
+import axios from "axios";
+import { Formik, Form, Field } from "formik";
 import * as Yup from "yup";
 import { toast } from "react-hot-toast";
 import { FormInput } from "../components/FormInput";
@@ -21,9 +22,34 @@ const validationSchema = Yup.object({
 
 export const SignupPage = () => {
   const navigate = useNavigate();
-  const handleSubmit = (values, { resetForm }) => {
-    toast.success("Registration successful!");
-    resetForm();
+  const handleSubmit = async (values, { resetForm, setSubmitting }) => {
+    try {
+      const formData = {
+        username: values.name,
+        email: values.email,
+        password: values.password,
+        role: values.isAgent ? "AGENT" : "CUSTOMER",
+        phonenumber: values.phone,
+      };
+
+      const response = await axios.post(
+        "http://localhost:8080/auth/register",
+        formData
+      );
+
+      if (response.data) {
+        toast.success("Registration successful!");
+        resetForm();
+        navigate("/login"); // Redirect to login page after successful registration
+      }
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        "Registration failed. Please try again.";
+      toast.error(errorMessage);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -65,6 +91,7 @@ export const SignupPage = () => {
                   email: "",
                   phone: "",
                   password: "",
+                  isAgent: false,
                 }}
                 validationSchema={validationSchema}
                 onSubmit={handleSubmit}
@@ -96,7 +123,7 @@ export const SignupPage = () => {
                       placeholder="••••••••"
                     />
                     <div className="flex items-center space-x-2">
-                      <input
+                      <Field
                         type="checkbox"
                         id="isAgent"
                         name="isAgent"
