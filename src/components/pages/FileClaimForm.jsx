@@ -10,6 +10,7 @@ import { DashboardLayout } from "../layout/DashboardLayout";
 import { FormInput } from "../components/FormInput";
 import { usePolicy } from "../../context/PolicyProvider";
 import { useClaim } from "../../context/ClaimContext";
+import { customerMenuItems } from "../../constants/data";
 
 // Maximum allowed file size (5MB)
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -149,7 +150,7 @@ export const FileClaimForm = () => {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout menuItems={customerMenuItems}>
       <div className="max-w-3xl mx-auto">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="border-b pb-4 mb-6">

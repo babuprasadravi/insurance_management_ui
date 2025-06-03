@@ -5,6 +5,8 @@ import { useClaim } from "../../context/ClaimContext";
 import { format } from "date-fns";
 import { EmptyState } from "../components/EmptyState";
 import { DocumentTextIcon, DocumentArrowUpIcon } from "@heroicons/react/24/outline";
+import { customerMenuItems } from "../../constants/data";
+
 
 export const MyClaims = () => {
   const { claims } = useClaim();
@@ -32,7 +34,7 @@ export const MyClaims = () => {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout menuItems={customerMenuItems} >
       <div className="mb-6 flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-semibold text-gray-800 mb-2">My Claims</h1>

@@ -16,6 +16,11 @@ import { ClaimProvider } from "./context/ClaimContext";
 import { MyClaims } from "./components/pages/MyClaims";
 import { AgentDashboard } from "./components/pages/AgentDashboard";
 import { AgentProvider } from "./context/AgentContext";
+import { AssignedCustomers } from "./components/pages/AssignedCustomers";
+import { CreatePolicy } from "./components/pages/CreatePolicy";
+import { AgentPolicies } from "./components/pages/AgentPolicies";
+import { ClaimsQueue } from "./components/pages/ClaimsQueue";
+import { AgentProfile } from "./components/pages/agentProfile";
 
 function App() {
   return (
@@ -49,7 +54,7 @@ function App() {
                 element={<CustomerDashboard />}
               />
               <Route path="/agentDashboard" element={<AgentDashboard />} />
-              {/* <Route
+              <Route
               path="/agentDashboard/customers"
               element={<AssignedCustomers />}
             />
@@ -62,7 +67,7 @@ function App() {
               element={<AgentPolicies />}
             />
             <Route path="/agentDashboard/claims" element={<ClaimsQueue />} />
-            <Route path="/agentDashboard/profile" element={<Profile />} /> */}
+            <Route path="/agentDashboard/profile" element={<AgentProfile />} />
             </Routes>
           </Router>
         </AgentProvider>

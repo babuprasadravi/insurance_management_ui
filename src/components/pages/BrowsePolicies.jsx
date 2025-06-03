@@ -2,6 +2,7 @@ import { useState } from "react";
 import { DashboardLayout } from "../layout/DashboardLayout";
 import { toast } from "react-hot-toast";
 import { PolicyCard } from "../components/PolicyCard";
+import { customerMenuItems } from "../../constants/data";
 
 // Sample policies data
 const policiesData = [
@@ -112,7 +113,7 @@ export const BrowsePolicies = () => {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout menuItems={customerMenuItems} >
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-gray-800 mb-2">Browse Available Policies</h1>
         <p className="text-gray-600">Find the perfect insurance policy for your vehicle</p>

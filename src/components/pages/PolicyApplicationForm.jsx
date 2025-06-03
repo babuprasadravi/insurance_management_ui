@@ -8,6 +8,8 @@ import { usePolicy } from "../../context/PolicyProvider";
 import { FormInput } from "../components/FormInput";
 import { toast } from "react-hot-toast";
 import { ChevronRightIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
+import { customerMenuItems } from "../../constants/data";
+
 
 // Vehicle manufacturers list for dropdown
 const manufacturers = [
@@ -132,7 +134,7 @@ export const PolicyApplicationForm = () => {
     };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout menuItems={customerMenuItems} >
       <div className="max-w-3xl mx-auto">
         {/* Progress indicator */}
         <div className="mb-8">

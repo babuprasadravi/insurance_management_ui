@@ -3,6 +3,7 @@ import { DashboardLayout } from "../layout/DashboardLayout";
 import { usePolicy } from "../../context/PolicyProvider";
 import { PurchasedPolicyCard } from "../components/PurchasedPolicyCard";
 import { EmptyState } from "../components/EmptyState";
+import { customerMenuItems } from "../../constants/data";
 
 export const MyPolicies = () => {
   const { purchasedPolicies } = usePolicy();
@@ -26,7 +27,7 @@ export const MyPolicies = () => {
     });
 
   return (
-    <DashboardLayout>
+    <DashboardLayout menuItems={customerMenuItems} >
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-gray-800 mb-2">My Insurance Policies</h1>
         <p className="text-gray-600">View and manage all your active insurance policies</p>
