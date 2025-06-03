@@ -386,13 +386,84 @@ export const AgentProvider = ({ children }) => {
     totalEarned: 25000,
   });
 
+    // Add new function to create policy
+    const addAgentCreatedPolicy = (policyData, customerId) => {
+      try {
+        console.log("Adding policy:", policyData);
+        console.log("For customer ID:", customerId);
+  
+        // Validate inputs
+        if (!policyData || !customerId) {
+          throw new Error("Missing policy data or customer ID");
+        }
+  
+        // Add to assigned policies
+        setAssignedPolicies(prev => {
+          const newPolicies = [...prev, policyData];
+          console.log("Updated assigned policies:", newPolicies);
+          return newPolicies;
+        });
+        
+        // Add to customer's policy list
+        setAssignedCustomers(prev => {
+          const updatedCustomers = prev.map(customer => {
+            if (customer.id === customerId) {
+              const customerPolicy = {
+                id: policyData.id,
+                name: policyData.name,
+                type: policyData.type,
+                vehicleRegNo: policyData.vehicleRegNo,
+                status: policyData.status,
+                validityEnd: policyData.validityEnd,
+                premiumPaid: policyData.premiumPaid
+              };
+              
+              return { 
+                ...customer, 
+                policies: [...(customer.policies || []), customerPolicy] 
+              };
+            }
+            return customer;
+          });
+          
+          console.log("Updated customers:", updatedCustomers);
+          return updatedCustomers;
+        });
+  
+        // Update commission
+        const commission = Math.round(policyData.premiumPaid * 0.05); // 5% commission
+        setCommissionSummary(prev => {
+          const updated = {
+            totalEarned: prev.totalEarned + commission
+          };
+          console.log("Updated commission:", updated);
+          return updated;
+        });
+  
+        console.log("Policy added successfully");
+      } catch (error) {
+        console.error("Error in addAgentCreatedPolicy:", error);
+        throw error;
+      }
+    };
+  
+    const value = {
+      assignedPolicies,
+      assignedCustomers,
+      pendingClaims,
+      commissionSummary,
+      addAgentCreatedPolicy
+    };
+  
+
   return (
     <AgentContext.Provider 
       value={{ 
         assignedPolicies, 
         assignedCustomers, 
         pendingClaims, 
-        commissionSummary
+        commissionSummary,
+        addAgentCreatedPolicy
       }}
     >
       {children}
