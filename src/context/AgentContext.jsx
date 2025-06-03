@@ -375,12 +375,141 @@ export const AgentProvider = ({ children }) => {
     {
       id: "CLM-2024-001",
       policyId: "POL-2024-1001",
+      customerId: "CUST-001",
       customerName: "Arul Kumar",
+      customerEmail: "arul@example.com",
+      policyName: "Premium Two-Wheeler Insurance",
+      vehicleRegNo: "KA01MR8701",
       amount: 15000,
+      estimatedAmount: 15000,
+      status: "FILED",
+      priority: "Medium",
+      submittedDate: "2024-02-20",
+      incidentDate: "2024-01-15",
+      description: "Minor accident - front panel damage",
+      accidentDetails: {
+        location: "MG Road, Bangalore",
+        weather: "Clear",
+        timeOfDay: "Morning",
+        policeReport: "Yes",
+        witnesses: 2
+      },
+      agentId: "AGENT-001",
+      agentName: "Rahul Sharma",
+      documents: ["accident_photos.jpg", "police_report.pdf"],
+      lastUpdated: "2024-02-20T10:30:00Z"
+    },
+    {
+      id: "CLM-2024-002",
+      policyId: "POL-2024-1004",
+      customerId: "CUST-003",
+      customerName: "Rajesh Patel",
+      customerEmail: "rajesh.patel@example.com",
+      policyName: "Premium Sedan Insurance",
+      vehicleRegNo: "DL03CD9876",
+      amount: 25000,
+      estimatedAmount: 28000,
       status: "Under Review",
-      submittedDate: "2024-02-20"
+      priority: "High",
+      submittedDate: "2024-02-10",
+      incidentDate: "2024-02-10",
+      description: "Rear collision damage",
+      accidentDetails: {
+        location: "CP Road, Delhi",
+        weather: "Rainy",
+        timeOfDay: "Evening",
+        policeReport: "Yes",
+        witnesses: 1
+      },
+      agentId: "AGENT-001",
+      agentName: "Rahul Sharma",
+      documents: ["damage_photos.jpg", "estimate.pdf", "police_report.pdf"],
+      lastUpdated: "2024-02-15T14:20:00Z"
+    },
+    {
+      id: "CLM-2024-006",
+      policyId: "POL-2024-1011",
+      customerId: "CUST-011",
+      customerName: "Amit Verma",
+      customerEmail: "amit.verma@example.com",
+      policyName: "Basic Car Insurance",
+      vehicleRegNo: "UP10BC1357",
+      amount: 12000,
+      estimatedAmount: 12000,
+      status: "Under Review",
+      priority: "Low",
+      submittedDate: "2024-02-18",
+      incidentDate: "2024-02-18",
+      description: "Windshield and headlight damage",
+      accidentDetails: {
+        location: "Sector 15, Noida",
+        weather: "Clear",
+        timeOfDay: "Afternoon",
+        policeReport: "No",
+        witnesses: 0
+      },
+      agentId: "AGENT-001",
+      agentName: "Rahul Sharma",
+      documents: ["damage_photos.jpg"],
+      lastUpdated: "2024-02-18T16:45:00Z"
     }
   ]);
+
+  const [processedClaims, setProcessedClaims] = useState([]);
+
+  // Function to approve claim
+  const approveClaim = (claimId, agentNotes = "") => {
+    const claim = pendingClaims.find(c => c.id === claimId);
+    if (claim) {
+      const processedClaim = {
+        ...claim,
+        status: "Approved",
+        processedDate: new Date().toISOString(),
+        agentNotes,
+        lastUpdated: new Date().toISOString()
+      };
+      
+      setProcessedClaims(prev => [...prev, processedClaim]);
+      setPendingClaims(prev => prev.filter(c => c.id !== claimId));
+      
+      // Update customer's claim status
+      setAssignedCustomers(prev => 
+        prev.map(customer => ({
+          ...customer,
+          claims: customer.claims?.map(claim => 
+            claim.id === claimId ? { ...claim, status: "Approved" } : claim
+          ) || []
+        }))
+      );
+    }
+  };
+
+  // Function to reject claim
+  const rejectClaim = (claimId, agentNotes = "") => {
+    const claim = pendingClaims.find(c => c.id === claimId);
+    if (claim) {
+      const processedClaim = {
+        ...claim,
+        status: "Rejected",
+        processedDate: new Date().toISOString(),
+        agentNotes,
+        lastUpdated: new Date().toISOString()
+      };
+      
+      setProcessedClaims(prev => [...prev, processedClaim]);
+      setPendingClaims(prev => prev.filter(c => c.id !== claimId));
+      
+      // Update customer's claim status
+      setAssignedCustomers(prev => 
+        prev.map(customer => ({
+          ...customer,
+          claims: customer.claims?.map(claim => 
+            claim.id === claimId ? { ...claim, status: "Rejected" } : claim
+          ) || []
+        }))
+      );
+    }
+  };
 
   const [commissionSummary, setCommissionSummary] = useState({
     totalEarned: 25000,
@@ -452,7 +581,11 @@ export const AgentProvider = ({ children }) => {
       assignedCustomers,
       pendingClaims,
       commissionSummary,
-      addAgentCreatedPolicy
+      processedClaims,
+      setAssignedPolicies,
+      addAgentCreatedPolicy,
+      approveClaim,
+      rejectClaim
     };
   
 
@@ -463,7 +596,11 @@ export const AgentProvider = ({ children }) => {
         assignedCustomers, 
         pendingClaims, 
         commissionSummary,
-        addAgentCreatedPolicy
+        processedClaims,
+        setAssignedPolicies,
+        addAgentCreatedPolicy,
+        approveClaim,
+        rejectClaim,
       }}
     >
       {children}

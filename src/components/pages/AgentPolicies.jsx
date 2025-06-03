@@ -79,7 +79,7 @@ export const AgentPolicies = () => {
     if (diffDays <= 0) return null;
     if (diffDays <= 30) {
       return {
-        message: `Expires in ${diffDays} day${diffDays > 1 ? 's' : ''}`,
+        message: `${diffDays}d left`,
         className: "text-amber-600 bg-amber-50 border-amber-200"
       };
     }
@@ -88,56 +88,56 @@ export const AgentPolicies = () => {
 
   return (
     <DashboardLayout menuItems={AgentMenuItems}>
-      <div className="space-y-6">
-        {/* Header */}
+      <div className="space-y-4">
+        {/* Compact Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-800">Agent Policies</h1>
-            <p className="text-gray-600 mt-1">Manage policies assigned to your customers</p>
+            <h1 className="text-xl font-semibold text-gray-800">Agent Policies</h1>
+            <p className="text-sm text-gray-600">Manage assigned customer policies</p>
           </div>
-          <div className="mt-4 sm:mt-0 flex items-center space-x-2">
+          <div className="mt-2 sm:mt-0">
             <div className="bg-blue-50 px-3 py-1 rounded-full">
-              <span className="text-sm font-medium text-blue-700">
-                Total: {assignedPolicies.length} Policies
+              <span className="text-xs font-medium text-blue-700">
+                Total: {assignedPolicies.length}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        {/* Compact Search Bar */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-3">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+              <MagnifyingGlassIcon className="h-4 w-4 text-gray-400" />
             </div>
             <input
               type="text"
-              className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-              placeholder="Search by policy ID, customer name, or vehicle registration..."
+              className="block w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="Search policies..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
 
-        {/* Policies Grid */}
+        {/* Compact Policies Grid */}
         {filteredPolicies.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
             {filteredPolicies.map((policy) => {
               const status = getPolicyStatus(policy);
               const expiryWarning = getExpiryWarning(policy.validityEnd);
               
               return (
-                <div key={policy.id} className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
-                  {/* Policy Header */}
-                  <div className="p-6 border-b border-gray-100">
-                    <div className="flex items-start justify-between mb-4">
+                <div key={policy.id} className="bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
+                  {/* Compact Policy Header */}
+                  <div className="p-4 border-b border-gray-100">
+                    <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getStatusBadge(status)}`}>
+                        <div className="flex items-center space-x-2 mb-2">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusBadge(status)}`}>
                             {status}
                           </span>
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                             policy.type === "Two-Wheeler" 
                               ? "bg-emerald-100 text-emerald-700" 
                               : "bg-blue-100 text-blue-700"
@@ -145,98 +145,93 @@ export const AgentPolicies = () => {
                             {policy.type}
                           </span>
                         </div>
-                        <h3 className="text-lg font-semibold text-gray-800 mb-1">
+                        <h3 className="text-sm font-semibold text-gray-800 mb-1 line-clamp-1">
                           {policy.name}
                         </h3>
-                        <p className="text-sm text-gray-500 flex items-center">
-                          <DocumentTextIcon className="h-4 w-4 mr-1" />
-                          Policy ID: {policy.id}
+                        <p className="text-xs text-gray-500 flex items-center">
+                          <DocumentTextIcon className="h-3 w-3 mr-1" />
+                          {policy.id}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm text-gray-500 mb-1">Premium Amount</p>
-                        <p className="text-xl font-bold text-indigo-600">
-                          ₹{policy.premiumPaid.toLocaleString()}
+                        <p className="text-xs text-gray-500 mb-1">Premium</p>
+                        <p className="text-sm font-bold text-indigo-600">
+                          ₹{(policy.premiumPaid / 1000).toFixed(0)}K
                         </p>
                       </div>
                     </div>
 
-                    {/* Expiry Warning */}
+                    {/* Compact Expiry Warning */}
                     {expiryWarning && (
-                      <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${expiryWarning.className} mb-4`}>
+                      <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${expiryWarning.className}`}>
                         <CalendarIcon className="h-3 w-3 mr-1" />
                         {expiryWarning.message}
                       </div>
                     )}
                   </div>
 
-                  {/* Policy Details */}
-                  <div className="p-6">
-                    <div className="grid grid-cols-2 gap-4 mb-5">
+                  {/* Compact Policy Details */}
+                  <div className="p-4">
+                    <div className="space-y-3 mb-4">
                       {/* Customer Info */}
                       <div>
                         <p className="text-xs text-gray-500 mb-1 flex items-center">
                           <UserIcon className="h-3 w-3 mr-1" />
                           Customer
                         </p>
-                        <p className="font-medium text-gray-800">{policy.customerName}</p>
-                        <p className="text-sm text-gray-600">{policy.customerEmail}</p>
+                        <p className="text-sm font-medium text-gray-800 truncate">{policy.customerName}</p>
+                        <p className="text-xs text-gray-600 truncate">{policy.customerEmail}</p>
                       </div>
 
                       {/* Vehicle Info */}
                       <div>
                         <p className="text-xs text-gray-500 mb-1 flex items-center">
                           <TruckIcon className="h-3 w-3 mr-1" />
-                          Vehicle Details
+                          Vehicle
                         </p>
-                        <p className="font-medium text-gray-800">{policy.vehicleRegNo}</p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm font-medium text-gray-800">{policy.vehicleRegNo}</p>
+                        <p className="text-xs text-gray-600 truncate">
                           {policy.manufacturer} {policy.model}
                         </p>
                       </div>
 
                       {/* Validity Period */}
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1 flex items-center">
-                          <CalendarIcon className="h-3 w-3 mr-1" />
-                          Valid From
-                        </p>
-                        <p className="font-medium text-gray-800">
-                          {formatDate(policy.validityStart)}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1 flex items-center">
-                          <CalendarIcon className="h-3 w-3 mr-1" />
-                          Valid Until
-                        </p>
-                        <p className={`font-medium ${status === 'Expired' ? 'text-red-600' : 'text-gray-800'}`}>
-                          {formatDate(policy.validityEnd)}
-                        </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Valid From</p>
+                          <p className="text-xs font-medium text-gray-800">
+                            {format(new Date(policy.validityStart), "dd MMM, yy")}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Valid Until</p>
+                          <p className={`text-xs font-medium ${status === 'Expired' ? 'text-red-600' : 'text-gray-800'}`}>
+                            {format(new Date(policy.validityEnd), "dd MMM, yy")}
+                          </p>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                    {/* Compact Action Buttons */}
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-100 space-x-2">
                       <button 
                         onClick={() => handleViewPolicy(policy)}
-                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 hover:border-indigo-300 transition-colors"
+                        className="flex-1 inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded hover:bg-indigo-100 transition-colors"
                       >
-                        <EyeIcon className="h-4 w-4 mr-2" />
-                        View Policy
+                        <EyeIcon className="h-3 w-3 mr-1" />
+                        View
                       </button>
                       
                       <button 
                         onClick={() => handleRenewPolicy(policy)}
-                        className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        className={`flex-1 inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded transition-colors ${
                           status === 'Expired' || expiryWarning
                             ? 'text-white bg-amber-600 hover:bg-amber-700 border border-amber-600'
                             : 'text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200'
                         }`}
                       >
-                        <ArrowPathIcon className="h-4 w-4 mr-2" />
-                        Renew Policy
+                        <ArrowPathIcon className="h-3 w-3 mr-1" />
+                        Renew
                       </button>
                     </div>
                   </div>
@@ -245,58 +240,58 @@ export const AgentPolicies = () => {
             })}
           </div>
         ) : (
-          /* Empty State */
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12">
+          /* Compact Empty State */
+          <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-8">
             <div className="text-center">
-              <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-800 mb-2">
-                {searchTerm ? "No policies found" : "No policies assigned yet"}
+              <DocumentTextIcon className="mx-auto h-8 w-8 text-gray-400 mb-3" />
+              <h3 className="text-sm font-medium text-gray-800 mb-1">
+                {searchTerm ? "No policies found" : "No policies assigned"}
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-xs text-gray-600 mb-4">
                 {searchTerm 
                   ? "Try adjusting your search criteria" 
-                  : "Start by creating policies for your assigned customers"}
+                  : "Start by creating policies for customers"}
               </p>
               {!searchTerm && (
                 <button 
                   onClick={() => window.location.href = '/agentDashboard/create-policy'}
-                  className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                  className="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded hover:bg-indigo-700 transition-colors"
                 >
-                  Create New Policy
+                  Create Policy
                 </button>
               )}
             </div>
           </div>
         )}
 
-        {/* Summary Stats */}
+        {/* Compact Summary Stats */}
         {filteredPolicies.length > 0 && (
-          <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl p-6 border border-indigo-100">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Portfolio Summary</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-4 border border-indigo-100">
+            <h3 className="text-sm font-semibold text-gray-800 mb-3">Portfolio Summary</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="text-center">
-                <p className="text-2xl font-bold text-indigo-600">
+                <p className="text-lg font-bold text-indigo-600">
                   {filteredPolicies.filter(p => getPolicyStatus(p) === 'Active').length}
                 </p>
-                <p className="text-sm text-gray-600">Active Policies</p>
+                <p className="text-xs text-gray-600">Active</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-red-600">
+                <p className="text-lg font-bold text-red-600">
                   {filteredPolicies.filter(p => getPolicyStatus(p) === 'Expired').length}
                 </p>
-                <p className="text-sm text-gray-600">Expired Policies</p>
+                <p className="text-xs text-gray-600">Expired</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-amber-600">
+                <p className="text-lg font-bold text-amber-600">
                   {filteredPolicies.filter(p => getExpiryWarning(p.validityEnd)).length}
                 </p>
-                <p className="text-sm text-gray-600">Expiring Soon</p>
+                <p className="text-xs text-gray-600">Expiring</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-green-600">
-                  ₹{filteredPolicies.reduce((sum, p) => sum + p.premiumPaid, 0).toLocaleString()}
+                <p className="text-lg font-bold text-green-600">
+                  ₹{(filteredPolicies.reduce((sum, p) => sum + p.premiumPaid, 0) / 1000).toFixed(0)}K
                 </p>
-                <p className="text-sm text-gray-600">Total Premium</p>
+                <p className="text-xs text-gray-600">Premium</p>
               </div>
             </div>
           </div>
