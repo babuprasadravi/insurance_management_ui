@@ -15,11 +15,13 @@ export const MyClaims = () => {
   const navigate = useNavigate();
   
   const [claims, setClaims] = useState([]);
+  const [policies, setPolicies] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingAgents, setIsLoadingAgents] = useState(false);
   const [error, setError] = useState("");
 
-  // Fetch claims from backend API
-  const fetchClaims = async () => {
+  // Fetch claims and policies data
+  const fetchData = async () => {
     if (!user?.id) {
       setError("User not authenticated");
       setIsLoading(false);
@@ -30,53 +32,79 @@ export const MyClaims = () => {
       setIsLoading(true);
       setError("");
 
-      const response = await axios.post(
-        "http://localhost:8082/api/claims/customer",
-        {
-          customerId: user.id
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json'
+      // Fetch both claims and policies concurrently
+      const [claimsResponse, policiesResponse] = await Promise.all([
+        axios.post(
+          "http://localhost:8082/api/claims/customer",
+          {
+            customerId: user.id
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json'
+            }
           }
-        }
-      );
+        ),
+        axios.get(`http://localhost:8084/api/policies/customer/${user.id}`)
+      ]);
 
-      console.log("Claims API Response:", response.data);
+      console.log("Claims API Response:", claimsResponse.data);
+      console.log("Policies API Response:", policiesResponse.data);
 
-      // Map API response to frontend format
-      const mappedClaims = response.data.map(claim => ({
-        id: claim.claimId,
-        policyId: claim.policyId,
-        policyDetails: {
-          id: claim.policyId,
-          name: claim.policyName,
-          // Hardcoded values as requested - will be replaced later
-          vehicleRegNo: "KA01AB1234",
-          type: "Motor Insurance"
-        },
-        // Use dateFiled from API as createdAt
-        createdAt: claim.dateFiled,
-        // Hardcoded incident date - will be replaced later
-        incidentDate: claim.dateFiled, // Using dateFiled as placeholder
-        claimAmount: claim.requestedAmount,
-        description: claim.briefDescription,
-        status: claim.status,
-        verified: claim.verified,
-        agentId: claim.agentId,
-        verificationComments: claim.verificationComments
-      }));
+      // Store policies data for agent matching
+      setPolicies(policiesResponse.data);
+
+      // Map claims data and enhance with agent details
+      const mappedClaims = claimsResponse.data.map(claim => {
+        // Find matching policy for this claim
+        const matchingPolicy = policiesResponse.data.find(
+          policy => policy.id === claim.policyId
+        );
+
+        return {
+          id: claim.claimId,
+          policyId: claim.policyId,
+          policyDetails: {
+            id: claim.policyId,
+            name: claim.policyName,
+            // Get real vehicle details from matching policy if available
+            vehicleRegNo: matchingPolicy?.licenceNo || "N/A",
+            vehicle: matchingPolicy?.vehicle || "N/A",
+            type: "Motor Insurance"
+          },
+          // Use dateFiled from API as createdAt
+          createdAt: claim.dateFiled,
+          // Use dateFiled as incident date placeholder
+          incidentDate: claim.dateFiled,
+          claimAmount: claim.requestedAmount,
+          description: claim.briefDescription,
+          status: claim.status,
+          verified: claim.verified,
+          agentId: claim.agentId,
+          verificationComments: claim.verificationComments,
+          // Enhanced agent details from policies
+          agentDetails: matchingPolicy ? {
+            id: matchingPolicy.agentId,
+            name: matchingPolicy.agentAssigned,
+            assigned: true
+          } : {
+            id: claim.agentId,
+            name: null,
+            assigned: false
+          }
+        };
+      });
 
       setClaims(mappedClaims);
     } catch (error) {
-      console.error("Error fetching claims:", error);
+      console.error("Error fetching data:", error);
       
-      let errorMessage = "Failed to fetch claims. Please try again.";
+      let errorMessage = "Failed to fetch claims and policies. Please try again.";
       
       if (error.response?.status === 400) {
         errorMessage = "Invalid request. Please check your account details.";
       } else if (error.response?.status === 404) {
-        errorMessage = "No claims found for your account.";
+        errorMessage = "No data found for your account.";
       } else if (error.response?.status === 500) {
         errorMessage = "Server error. Please try again later.";
       } else if (error.code === 'ECONNREFUSED') {
@@ -90,9 +118,9 @@ export const MyClaims = () => {
     }
   };
 
-  // Fetch claims when component mounts or user changes
+  // Fetch data when component mounts or user changes
   useEffect(() => {
-    fetchClaims();
+    fetchData();
   }, [user?.id]);
 
   // Function to format date
@@ -115,6 +143,42 @@ export const MyClaims = () => {
     };
     
     return statusClasses[status] || "bg-gray-50 text-gray-700";
+  };
+
+  // Function to render agent information
+  const renderAgentInfo = (claim) => {
+    const { agentDetails } = claim;
+    
+    if (agentDetails.assigned && agentDetails.name) {
+      return (
+        <div className="text-sm text-gray-500">
+          <span className="inline-flex items-center">
+            <span className="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
+            Assigned to <span className="font-medium text-gray-700 ml-1">{agentDetails.name}</span>
+            <span className="text-gray-400 ml-1">(ID: {agentDetails.id})</span>
+          </span>
+        </div>
+      );
+    } else if (agentDetails.id) {
+      return (
+        <div className="text-sm text-gray-500">
+          <span className="inline-flex items-center">
+            <span className="w-2 h-2 bg-amber-400 rounded-full mr-2"></span>
+            Assigned to Agent ID: {agentDetails.id}
+            <span className="text-xs text-amber-600 ml-2">(Name pending)</span>
+          </span>
+        </div>
+      );
+    } else {
+      return (
+        <div className="text-sm text-gray-500">
+          <span className="inline-flex items-center">
+            <span className="w-2 h-2 bg-gray-400 rounded-full mr-2"></span>
+            No agent assigned
+          </span>
+        </div>
+      );
+    }
   };
 
   // Loading state
@@ -191,7 +255,7 @@ export const MyClaims = () => {
           <h3 className="text-lg font-medium text-red-800 mb-2">Error Loading Claims</h3>
           <p className="text-red-600 mb-4">{error}</p>
           <button
-            onClick={fetchClaims}
+            onClick={fetchData}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
             Try Again
@@ -250,6 +314,9 @@ export const MyClaims = () => {
                 <div>
                   <p className="text-xs text-gray-500">Vehicle</p>
                   <p className="font-medium">{claim.policyDetails.vehicleRegNo}</p>
+                  {claim.policyDetails.vehicle && claim.policyDetails.vehicle !== "N/A" && (
+                    <p className="text-sm text-gray-500">{claim.policyDetails.vehicle}</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Incident Date</p>
@@ -283,11 +350,14 @@ export const MyClaims = () => {
                 </div>
               )}
 
+              {/* Enhanced Agent Information Section */}
+              <div className="mb-5 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-xs text-blue-600 font-medium mb-2">AGENT ASSIGNMENT</p>
+                {renderAgentInfo(claim)}
+              </div>
+
               {/* Actions */}
-              <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                <div className="text-sm text-gray-500">
-                  {claim.agentId ? `Assigned to Agent #${claim.agentId}` : "No agent assigned"}
-                </div>
+              <div className="flex items-center justify-end pt-4 border-t border-gray-100">
                 <button
                   className="inline-flex items-center text-sm px-4 py-2 text-indigo-600 font-medium border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors"
                   onClick={() => {

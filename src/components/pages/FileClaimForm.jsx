@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
@@ -9,8 +9,6 @@ import axios from "axios";
 
 import { DashboardLayout } from "../layout/DashboardLayout";
 import { FormInput } from "../components/FormInput";
-import { usePolicy } from "../../context/PolicyProvider";
-import { useClaim } from "../../context/ClaimContext";
 import { useAuth } from "../../context/AuthProvider";
 import { customerMenuItems } from "../../constants/data";
 
@@ -45,16 +43,95 @@ export const FileClaimForm = () => {
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { purchasedPolicies } = usePolicy();
-  const { addClaim } = useClaim();
   const { user } = useAuth();
   
   const [files, setFiles] = useState([]);
   const [fileError, setFileError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [policies, setPolicies] = useState([]);
+  const [isLoadingPolicies, setIsLoadingPolicies] = useState(true);
+  const [policiesError, setPoliciesError] = useState("");
 
   // Get pre-selected policy from navigation state (if available)
-  const preSelectedPolicyId = location.state?.policyId;
+  const preSelectedPolicy = location.state?.selectedPolicy;
+
+  // Calculate status based on validity dates
+  const calculateStatus = (validFrom, validUntil) => {
+    const today = new Date();
+    const startDate = new Date(validFrom);
+    const endDate = new Date(validUntil);
+    
+    if (today < startDate) {
+      return "Pending";
+    } else if (today > endDate) {
+      return "Expired";
+    } else {
+      return "Active";
+    }
+  };
+
+  // Fetch user's policies from backend API
+  const fetchPolicies = async () => {
+    try {
+      setIsLoadingPolicies(true);
+      setPoliciesError("");
+
+      if (!user?.id) {
+        throw new Error("User not authenticated");
+      }
+
+      const response = await axios.get(`http://localhost:8084/api/policies/customer/${user.id}`);
+      
+      console.log("Customer Policies API Response:", response.data);
+
+      // Map API response to frontend format and filter only active policies
+      const mappedPolicies = response.data
+        .map(policy => ({
+          id: policy.id,
+          name: policy.policyName, // Map policyName to name
+          vehicleRegNo: policy.licenceNo, // Map licenceNo to vehicleRegNo
+          vehicle: policy.vehicle,
+          validityStart: policy.validFrom,
+          validityEnd: policy.validUntil,
+          premiumPaid: policy.premium,
+          agentName: policy.agentAssigned,
+          agentId: policy.agentId,
+          customerId: policy.customerId,
+          status: calculateStatus(policy.validFrom, policy.validUntil)
+        }))
+        .filter(policy => policy.status === "Active"); // Only show active policies
+
+      setPolicies(mappedPolicies);
+    } catch (error) {
+      console.error("Error fetching customer policies:", error);
+      
+      let errorMessage = "Failed to fetch policies. Please try again.";
+      
+      if (error.response?.status === 404) {
+        errorMessage = "No policies found for your account.";
+      } else if (error.response?.status === 500) {
+        errorMessage = "Server error. Please try again later.";
+      } else if (error.code === 'ECONNREFUSED') {
+        errorMessage = "Cannot connect to server. Please check if the backend is running.";
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message === "User not authenticated") {
+        errorMessage = "Please log in to file a claim.";
+      }
+      
+      setPoliciesError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsLoadingPolicies(false);
+    }
+  };
+
+  // Fetch policies when component mounts
+  useEffect(() => {
+    if (user?.id) {
+      fetchPolicies();
+    }
+  }, [user?.id]);
 
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
@@ -113,7 +190,7 @@ export const FileClaimForm = () => {
     
     try {
       // Get policy details
-      const policyDetails = purchasedPolicies.find(policy => policy.id === values.policyId);
+      const policyDetails = policies.find(policy => policy.id === parseInt(values.policyId));
       
       if (!policyDetails) {
         throw new Error("Selected policy not found");
@@ -121,7 +198,7 @@ export const FileClaimForm = () => {
 
       // Prepare API request body according to backend requirements
       const apiRequestBody = {
-        policyId: 1, // Convert to number as per API
+        policyId: parseInt(values.policyId), // Use actual selected policy ID
         customerId: user.id, // Get from authenticated user
         policyName: policyDetails.name, // Use policy name from selected policy
         dateOfIncident: values.incidentDate, // Map frontend field to API field
@@ -144,29 +221,6 @@ export const FileClaimForm = () => {
 
       console.log("API Response:", response.data);
 
-      // Create claim object for local context (using API response data)
-      const claimData = {
-        id: response.data.claimId,
-        policyId: values.policyId,
-        policyDetails: {
-          id: policyDetails.id,
-          name: policyDetails.name,
-          type: policyDetails.type,
-          vehicleRegNo: policyDetails.vehicleRegNo
-        },
-        incidentDate: values.incidentDate,
-        description: values.description,
-        claimAmount: values.claimAmount,
-        status: response.data.status,
-        dateFiled: response.data.dateFiled,
-        verified: response.data.verified,
-        // Skip file evidence for now as requested
-        evidence: []
-      };
-      
-      // Add claim to local context
-      addClaim(claimData);
-      
       toast.success(
         `Claim submitted successfully! Claim ID: ${response.data.claimId}`,
         { duration: 4000 }
@@ -198,6 +252,15 @@ export const FileClaimForm = () => {
     }
   };
 
+  // Determine initial policy ID for form
+  const getInitialPolicyId = () => {
+    if (preSelectedPolicy) {
+      // If policy was passed through navigation, use its ID
+      return preSelectedPolicy.id.toString();
+    }
+    return "";
+  };
+
   return (
     <DashboardLayout menuItems={customerMenuItems}>
       <div className="max-w-3xl mx-auto">
@@ -207,11 +270,18 @@ export const FileClaimForm = () => {
             <p className="text-gray-600 mt-1">
               Submit a new insurance claim for your vehicle
             </p>
+            {preSelectedPolicy && (
+              <div className="mt-3 p-3 bg-indigo-50 rounded-lg">
+                <p className="text-sm text-indigo-700">
+                  <span className="font-medium">Pre-selected Policy:</span> {preSelectedPolicy.name} ({preSelectedPolicy.vehicleRegNo})
+                </p>
+              </div>
+            )}
           </div>
 
           <Formik
             initialValues={{
-              policyId: preSelectedPolicyId || "",
+              policyId: getInitialPolicyId(),
               incidentDate: format(new Date(), "yyyy-MM-dd"),
               description: "",
               claimAmount: ""
@@ -227,22 +297,48 @@ export const FileClaimForm = () => {
                     Select Policy
                   </label>
                   
-                  {purchasedPolicies.length > 0 ? (
+                  {isLoadingPolicies ? (
+                    <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                      <div className="animate-pulse">
+                        <div className="h-5 bg-gray-200 rounded"></div>
+                      </div>
+                    </div>
+                  ) : policiesError ? (
+                    <div className="p-4 bg-red-50 text-red-700 rounded-lg">
+                      <p className="text-sm">{policiesError}</p>
+                      <button
+                        type="button"
+                        onClick={fetchPolicies}
+                        className="mt-2 text-sm text-red-600 underline hover:text-red-700"
+                      >
+                        Try Again
+                      </button>
+                    </div>
+                  ) : policies.length > 0 ? (
                     <Field
                       as="select"
                       name="policyId"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     >
                       <option value="">-- Select a policy --</option>
-                      {purchasedPolicies.map(policy => (
+                      {policies.map(policy => (
                         <option key={policy.id} value={policy.id}>
-                          {policy.name} ({policy.vehicleRegNo}) - {policy.id}
+                          {policy.name} ({policy.vehicleRegNo}) - {policy.vehicle}
                         </option>
                       ))}
                     </Field>
                   ) : (
                     <div className="p-4 bg-amber-50 text-amber-700 rounded-lg">
-                      No active policies found. Please purchase a policy before filing a claim.
+                      <p className="text-sm">
+                        No active policies found. You need an active policy to file a claim.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => navigate("/dashboard/browse-policies")}
+                        className="mt-2 text-sm text-amber-600 underline hover:text-amber-700"
+                      >
+                        Browse Policies
+                      </button>
                     </div>
                   )}
                   
@@ -395,7 +491,7 @@ export const FileClaimForm = () => {
                   </button>
                   <button
                     type="submit"
-                    disabled={!isValid || !dirty || isSubmitting}
+                    disabled={!isValid || !dirty || isSubmitting || isLoadingPolicies}
                     className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center disabled:opacity-50"
                   >
                     {isSubmitting ? (

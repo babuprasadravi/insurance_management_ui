@@ -2,9 +2,11 @@ import { useNavigate } from "react-router-dom";
 
 export const PolicyCard = ({ policy }) => {
   const navigate = useNavigate();
+  
   const handlePurchase = () => {
     navigate("/dashboard/policy-application", { state: { policy } });
   };
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between">
@@ -21,11 +23,11 @@ export const PolicyCard = ({ policy }) => {
           <h3 className="mt-2 text-lg font-semibold text-gray-800">
             {policy.name}
           </h3>
-          <p className="text-sm text-gray-500">Policy ID: {policy.id}</p>
+          {/* Removed Policy ID display as requested */}
         </div>
         <div className="text-right">
           <p className="text-2xl font-bold text-indigo-600">
-            ₹{policy.premium}
+            ₹{policy.premium.toLocaleString()}
             <span className="text-sm font-normal text-gray-500">/year</span>
           </p>
         </div>
