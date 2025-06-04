@@ -5,11 +5,13 @@ import * as Yup from "yup";
 import { format } from "date-fns";
 import { toast } from "react-hot-toast";
 import { DocumentArrowUpIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import axios from "axios";
 
 import { DashboardLayout } from "../layout/DashboardLayout";
 import { FormInput } from "../components/FormInput";
 import { usePolicy } from "../../context/PolicyProvider";
 import { useClaim } from "../../context/ClaimContext";
+import { useAuth } from "../../context/AuthProvider";
 import { customerMenuItems } from "../../constants/data";
 
 // Maximum allowed file size (5MB)
@@ -45,6 +47,7 @@ export const FileClaimForm = () => {
   const location = useLocation();
   const { purchasedPolicies } = usePolicy();
   const { addClaim } = useClaim();
+  const { user } = useAuth();
   
   const [files, setFiles] = useState([]);
   const [fileError, setFileError] = useState("");
@@ -109,41 +112,87 @@ export const FileClaimForm = () => {
     setIsSubmitting(true);
     
     try {
-      // In a real app, you would upload files to a server here
-      // For now we'll just create file metadata
-      const fileMetadata = files.map(file => ({
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        lastModified: file.lastModified
-      }));
-      
       // Get policy details
       const policyDetails = purchasedPolicies.find(policy => policy.id === values.policyId);
       
-      // Create claim object
+      if (!policyDetails) {
+        throw new Error("Selected policy not found");
+      }
+
+      // Prepare API request body according to backend requirements
+      const apiRequestBody = {
+        policyId: 1, // Convert to number as per API
+        customerId: user.id, // Get from authenticated user
+        policyName: policyDetails.name, // Use policy name from selected policy
+        dateOfIncident: values.incidentDate, // Map frontend field to API field
+        briefDescription: values.description, // Map frontend field to API field
+        claimAmountRequested: parseFloat(values.claimAmount) // Convert to number
+      };
+
+      console.log("Submitting claim with data:", apiRequestBody);
+
+      // Make API call to backend
+      const response = await axios.post(
+        "http://localhost:8082/api/claims/post",
+        apiRequestBody,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      console.log("API Response:", response.data);
+
+      // Create claim object for local context (using API response data)
       const claimData = {
-        ...values,
+        id: response.data.claimId,
+        policyId: values.policyId,
         policyDetails: {
           id: policyDetails.id,
           name: policyDetails.name,
           type: policyDetails.type,
           vehicleRegNo: policyDetails.vehicleRegNo
         },
-        evidence: fileMetadata,
+        incidentDate: values.incidentDate,
+        description: values.description,
+        claimAmount: values.claimAmount,
+        status: response.data.status,
+        dateFiled: response.data.dateFiled,
+        verified: response.data.verified,
+        // Skip file evidence for now as requested
+        evidence: []
       };
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Add claim to context
+      // Add claim to local context
       addClaim(claimData);
       
-      toast.success("Claim submitted successfully");
-      navigate("/dashboard");
+      toast.success(
+        `Claim submitted successfully! Claim ID: ${response.data.claimId}`,
+        { duration: 4000 }
+      );
+      
+      // Navigate to claims page to see the submitted claim
+      navigate("/dashboard/claims");
+      
     } catch (error) {
-      toast.error("Failed to submit claim. Please try again.");
       console.error("Claim submission error:", error);
+      
+      let errorMessage = "Failed to submit claim. Please try again.";
+      
+      if (error.response?.status === 400) {
+        errorMessage = "Invalid claim data. Please check your inputs and try again.";
+      } else if (error.response?.status === 404) {
+        errorMessage = "Policy not found. Please select a valid policy.";
+      } else if (error.response?.status === 500) {
+        errorMessage = "Server error. Please try again later.";
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.code === 'ECONNREFUSED') {
+        errorMessage = "Cannot connect to server. Please check if the backend is running.";
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -256,7 +305,7 @@ export const FileClaimForm = () => {
                   />
                 </div>
 
-                {/* File Upload Section */}
+                {/* File Upload Section - Keep for future use */}
                 <div>
                   <h3 className="font-medium text-gray-800 mb-4">Upload Evidence</h3>
                   
@@ -270,13 +319,17 @@ export const FileClaimForm = () => {
                         <p className="text-xs text-gray-500 mt-1">
                           Supported formats: JPG, PNG, PDF, DOC (Max: 5MB each)
                         </p>
+                        <p className="text-xs text-amber-600 mt-1 font-medium">
+                          Note: File upload feature will be available soon
+                        </p>
                       </div>
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 font-medium text-sm"
+                        className="px-4 py-2 bg-gray-100 text-gray-500 rounded-lg cursor-not-allowed font-medium text-sm"
+                        disabled
                       >
-                        Browse Files
+                        Browse Files (Coming Soon)
                       </button>
                       <input
                         ref={fileInputRef}
@@ -285,6 +338,7 @@ export const FileClaimForm = () => {
                         className="hidden"
                         onChange={handleFileChange}
                         accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+                        disabled
                       />
                     </div>
                   </div>
