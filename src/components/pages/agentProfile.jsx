@@ -2,16 +2,18 @@ import { useState } from 'react';
 import { PhotoIcon, CheckCircleIcon } from '@heroicons/react/24/solid';
 import { DashboardLayout } from '../layout/DashboardLayout';
 import { AgentMenuItems } from '../../constants/data';
+import { useAuth } from '../../context/AuthProvider';
 
 export const AgentProfile = () => {
+  const {user} = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [formData, setFormData] = useState({
-    name: 'Arul',
-    email: 'arul@example.com',
-    phone: '+91 9876543210',
-    address: '123 Main Street, Chennai, Tamil Nadu, India'
+    name: user.username || "",
+    email: user.email || "",
+    phone: user.phonenumber || "",
+    address: "",
   });
   const [tempData, setTempData] = useState({...formData});
 

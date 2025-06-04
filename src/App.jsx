@@ -31,7 +31,7 @@ function App() {
         <AgentProvider>
           <Router>
             <AuthProvider>
-              <Toaster position="top-right" />
+              <Toaster position="top-center" />
               <Routes>
                 {/* Public Routes */}
                 <Route
