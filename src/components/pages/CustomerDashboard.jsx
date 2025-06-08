@@ -8,17 +8,10 @@ import { OverviewCard } from "../ui/OverviewCard";
 import { WelcomeBanner } from "../ui/WelcomeBanner";
 import { customerMenuItems } from "../../constants/data";
 export const CustomerDashboard = () => {
-  const customer = {
-    name: "Arul",
-    policies: 2,
-    activeClaims: 1,
-  };
-
   return (
     <DashboardLayout menuItems={customerMenuItems}>
       {/* Welcome Banner */}
-      <WelcomeBanner customer={customer} />
-
+      <WelcomeBanner/>
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <OverviewCard
@@ -29,13 +22,13 @@ export const CustomerDashboard = () => {
         />
         <OverviewCard
           title="My Policies"
-          value={customer.policies}
+          value={3}
           icon={ClipboardDocumentListIcon}
           className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100"
         />
         <OverviewCard
           title="Active Claims"
-          value={customer.activeClaims}
+          value={2}
           icon={ExclamationCircleIcon}
           className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-100"
         />

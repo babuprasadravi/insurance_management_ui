@@ -22,9 +22,8 @@ export const AssignedCustomers = () => {
   const [isPoliciesLoading, setIsPoliciesLoading] = useState(false);
   const [policyError, setPolicyError] = useState("");
   const [customerClaims, setCustomerClaims] = useState([]);
-const [isClaimsLoading, setIsClaimsLoading] = useState(false);
-const [claimError, setClaimError] = useState("");
-
+  const [isClaimsLoading, setIsClaimsLoading] = useState(false);
+  const [claimError, setClaimError] = useState("");
 
   // Fetch customer IDs and their details
   useEffect(() => {
@@ -136,8 +135,6 @@ const [claimError, setClaimError] = useState("");
     setPolicyError("");
     setClaimError("");
   };
-
-  
 
   if (isLoading) {
     return (
@@ -302,21 +299,21 @@ const [claimError, setClaimError] = useState("");
 
       {/* Customer Detail Modal */}
       <CustomerDetailModal
-    customer={selectedCustomer}
-    isOpen={isModalOpen}
-    onClose={closeModal}
-    isDataAvailable={true}
-    policies={{
-      data: customerPolicies,
-      isLoading: isPoliciesLoading,
-      error: policyError
-    }}
-    claims={{
-      data: customerClaims,
-      isLoading: isClaimsLoading,
-      error: claimError
-    }}
-  />
+        customer={selectedCustomer}
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        isDataAvailable={true}
+        policies={{
+          data: customerPolicies,
+          isLoading: isPoliciesLoading,
+          error: policyError,
+        }}
+        claims={{
+          data: customerClaims,
+          isLoading: isClaimsLoading,
+          error: claimError,
+        }}
+      />
     </DashboardLayout>
   );
 };

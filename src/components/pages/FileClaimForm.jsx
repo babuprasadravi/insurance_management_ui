@@ -40,13 +40,9 @@ const validationSchema = Yup.object({
 });
 
 export const FileClaimForm = () => {
-  const fileInputRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  
-  const [files, setFiles] = useState([]);
-  const [fileError, setFileError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [policies, setPolicies] = useState([]);
   const [isLoadingPolicies, setIsLoadingPolicies] = useState(true);
@@ -56,7 +52,7 @@ export const FileClaimForm = () => {
   const preSelectedPolicy = location.state?.selectedPolicy;
 
   // Calculate status based on validity dates
-  const calculateStatus = (validFrom, validUntil) => {
+    const calculateStatus = (validFrom, validUntil) => {
     const today = new Date();
     const startDate = new Date(validFrom);
     const endDate = new Date(validUntil);
@@ -133,57 +129,6 @@ export const FileClaimForm = () => {
     }
   }, [user?.id]);
 
-  const handleFileChange = (e) => {
-    const selectedFiles = Array.from(e.target.files);
-    let hasError = false;
-    
-    const validFiles = selectedFiles.filter(file => {
-      // Check file size
-      if (file.size > MAX_FILE_SIZE) {
-        setFileError(`File "${file.name}" is too large. Maximum size is 5MB.`);
-        hasError = true;
-        return false;
-      }
-      
-      // Check file type
-      if (!SUPPORTED_FORMATS.includes(file.type)) {
-        setFileError(`File "${file.name}" has unsupported format. Please use JPG, PNG, or PDF.`);
-        hasError = true;
-        return false;
-      }
-      
-      return true;
-    });
-    
-    if (!hasError) {
-      setFileError("");
-      setFiles(prev => [...prev, ...validFiles]);
-    }
-  };
-  
-  const removeFile = (indexToRemove) => {
-    setFiles(files.filter((_, index) => index !== indexToRemove));
-  };
-  
-  const formatFileSize = (bytes) => {
-    if (bytes < 1024) return bytes + ' bytes';
-    else if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    else return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  };
-  
-  const getFileIcon = (fileName) => {
-    const extension = fileName.split('.').pop().toLowerCase();
-    
-    if (['jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
-      return "🖼️";
-    } else if (['pdf'].includes(extension)) {
-      return "📄";
-    } else if (['doc', 'docx'].includes(extension)) {
-      return "📝";
-    }
-    
-    return "📎";
-  };
   
   const handleSubmit = async (values) => {
     setIsSubmitting(true);
@@ -399,85 +344,6 @@ export const FileClaimForm = () => {
                     type="number"
                     placeholder="Enter amount in rupees"
                   />
-                </div>
-
-                {/* File Upload Section - Keep for future use */}
-                <div>
-                  <h3 className="font-medium text-gray-800 mb-4">Upload Evidence</h3>
-                  
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-                    <div className="flex flex-col items-center justify-center space-y-3">
-                      <DocumentArrowUpIcon className="h-10 w-10 text-gray-400" />
-                      <div className="text-center">
-                        <p className="text-sm text-gray-600">
-                          Drag and drop files here, or click to browse
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Supported formats: JPG, PNG, PDF, DOC (Max: 5MB each)
-                        </p>
-                        <p className="text-xs text-amber-600 mt-1 font-medium">
-                          Note: File upload feature will be available soon
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="px-4 py-2 bg-gray-100 text-gray-500 rounded-lg cursor-not-allowed font-medium text-sm"
-                        disabled
-                      >
-                        Browse Files (Coming Soon)
-                      </button>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        multiple
-                        className="hidden"
-                        onChange={handleFileChange}
-                        accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
-                        disabled
-                      />
-                    </div>
-                  </div>
-
-                  {fileError && (
-                    <p className="text-red-600 text-sm mt-2">{fileError}</p>
-                  )}
-
-                  {/* File Preview List */}
-                  {files.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                      <h4 className="text-sm font-medium text-gray-700">
-                        Uploaded Files ({files.length})
-                      </h4>
-                      <div className="space-y-2">
-                        {files.map((file, index) => (
-                          <div 
-                            key={index} 
-                            className="flex items-center justify-between bg-gray-50 px-4 py-2 rounded-lg"
-                          >
-                            <div className="flex items-center space-x-3">
-                              <span className="text-xl">{getFileIcon(file.name)}</span>
-                              <div>
-                                <p className="text-sm font-medium truncate max-w-xs">
-                                  {file.name}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  {formatFileSize(file.size)}
-                                </p>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeFile(index)}
-                              className="p-1 hover:bg-gray-200 rounded-full"
-                            >
-                              <XMarkIcon className="h-5 w-5 text-gray-500" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Actions */}

@@ -11,17 +11,7 @@ export const PurchasedPolicyCard = ({ policy }) => {
       return dateString;
     }
   };
-  
-  const handleViewPolicy = () => {
-    // Future implementation for policy details view
-    console.log("View policy details:", policy);
-  };
-  
-  const handleRenew = () => {
-    // Future implementation for policy renewal
-    console.log("Renew policy:", policy);
-  };
-  
+
   const handleFileClaim = () => {
     // Navigate to file claim form with policy data
     navigate("/dashboard/file-claim", { 
@@ -88,19 +78,7 @@ export const PurchasedPolicyCard = ({ policy }) => {
 
       {/* Actions */}
       <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-        <button
-          onClick={handleViewPolicy}
-          className="text-sm px-3 py-1 text-indigo-600 font-medium hover:bg-indigo-50 rounded transition-colors"
-        >
-          View Details
-        </button>
         <div className="flex space-x-2">
-          <button
-            onClick={handleRenew}
-            className="text-sm px-3 py-1 text-gray-600 border border-gray-200 rounded hover:bg-gray-50 transition-colors"
-          >
-            Renew
-          </button>
           <button
             onClick={handleFileClaim}
             className="text-sm px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"

@@ -27,9 +27,6 @@ export const Hero = () => {
                 >
                   Get Started
                 </button>
-                <button className="px-8 py-4 border-2 border-gray-200 text-gray-700 rounded-lg hover:border-indigo-600 hover:text-indigo-600 transition duration-300 font-semibold">
-                  Learn More
-                </button>
               </div>
               <div className="flex items-center space-x-8 pt-8">
                 <div className="flex flex-col">
