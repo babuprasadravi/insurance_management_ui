@@ -20,6 +20,12 @@ import { ClaimsQueue } from "./components/pages/ClaimsQueue";
 import { AgentProfile } from "./components/pages/agentProfile";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AuthProvider } from "./context/AuthProvider";
+import { AdminDashboard } from "./components/pages/AdminDashboard";
+import { AdminCustomers } from "./components/pages/AdminCustomers";
+import { AdminAgents } from "./components/pages/AdminAgents";
+import { AdminTemplatePolicies } from "./components/pages/AdminTemplatePolicies";
+import { AdminCustomerPolicies } from "./components/pages/AdminCustomerPolicies";
+import { AdminClaims } from "./components/pages/AdminClaims";
 
 function App() {
   return (
@@ -139,6 +145,55 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["AGENT"]}>
                 <AgentProfile />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/adminDashboard"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/adminDashboard/customers"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminCustomers />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/adminDashboard/agents"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminAgents />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/adminDashboard/template-policies"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminTemplatePolicies />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/adminDashboard/customer-policies"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminCustomerPolicies />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/adminDashboard/claims"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminClaims />
               </ProtectedRoute>
             }
           />

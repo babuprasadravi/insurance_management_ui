@@ -1,10 +1,11 @@
 import {
   UserCircleIcon,
   DocumentTextIcon,
-  ClipboardDocumentListIcon,
-  BellIcon,
   UsersIcon,
   DocumentPlusIcon,
+  UserGroupIcon,
+  ClipboardDocumentListIcon,
+  Cog6ToothIcon
 } from "@heroicons/react/24/outline";
 
 
@@ -83,4 +84,32 @@ export const AgentMenuItems = [
     icon: DocumentTextIcon,
     path: "/agentDashboard/claims",
   }
+];
+
+export const AdminMenuItems = [
+  {
+    name: "Customers",
+    icon: UsersIcon,
+    path: "/adminDashboard/customers"
+  },
+  {
+    name: "Agents",
+    icon: UserGroupIcon,
+    path: "/adminDashboard/agents"
+  },
+  {
+    name: "Template Policies",
+    icon: DocumentTextIcon,
+    path: "/adminDashboard/template-policies"
+  },
+  {
+    name: "Customer Policies",
+    icon: ClipboardDocumentListIcon,
+    path: "/adminDashboard/customer-policies"
+  },
+  {
+    name: "Claims",
+    icon: DocumentTextIcon,
+    path: "/adminDashboard/claims"
+  },
 ];
