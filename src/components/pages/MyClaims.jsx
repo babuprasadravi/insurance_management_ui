@@ -52,12 +52,20 @@ export const MyClaims = () => {
       console.log("Policies API Response:", policiesResponse.data);
 
       // Store policies data for agent matching
-      setPolicies(policiesResponse.data);
+      setPolicies(policiesResponse.data || []);
+
+      // Check if claims response is empty or null
+      const claimsData = claimsResponse.data;
+      if (!claimsData || claimsData.length === 0) {
+        setClaims([]);
+        setIsLoading(false);
+        return;
+      }
 
       // Map claims data and enhance with agent details
-      const mappedClaims = claimsResponse.data.map(claim => {
+      const mappedClaims = claimsData.map(claim => {
         // Find matching policy for this claim
-        const matchingPolicy = policiesResponse.data.find(
+        const matchingPolicy = (policiesResponse.data || []).find(
           policy => policy.id === claim.policyId
         );
 
@@ -104,7 +112,10 @@ export const MyClaims = () => {
       if (error.response?.status === 400) {
         errorMessage = "Invalid request. Please check your account details.";
       } else if (error.response?.status === 404) {
-        errorMessage = "No data found for your account.";
+        // Handle 404 as empty state instead of error
+        setClaims([]);
+        setIsLoading(false);
+        return;
       } else if (error.response?.status === 500) {
         errorMessage = "Server error. Please try again later.";
       } else if (error.code === 'ECONNREFUSED') {

@@ -1,11 +1,23 @@
 import { useState } from "react";
-import { XMarkIcon, UserIcon, DocumentTextIcon, ClipboardDocumentListIcon } from "@heroicons/react/24/outline";
+import {
+  XMarkIcon,
+  UserIcon,
+  DocumentTextIcon,
+  ClipboardDocumentListIcon,
+  ExclamationTriangleIcon,
+} from "@heroicons/react/24/outline";
 import { format } from "date-fns";
 
-export const CustomerDetailModal = ({ customer, isOpen, onClose }) => {
+export const CustomerDetailModal = ({
+  customer,
+  isOpen,
+  onClose,
+  policies,
+  claims,
+}) => {
   const [activeTab, setActiveTab] = useState("overview");
 
-  if (!isOpen) return null;
+  if (!isOpen || !customer) return null;
 
   const formatDate = (dateString) => {
     try {
@@ -15,23 +27,35 @@ export const CustomerDetailModal = ({ customer, isOpen, onClose }) => {
     }
   };
 
-  const getStatusBadge = (status) => {
-    const statusClasses = {
-      "Active": "bg-green-50 text-green-700 border-green-200",
-      "Expired": "bg-red-50 text-red-700 border-red-200",
-      "Under Review": "bg-amber-50 text-amber-700 border-amber-200",
-      "Approved": "bg-green-50 text-green-700 border-green-200",
-      "Rejected": "bg-red-50 text-red-700 border-red-200",
-      "Pending Documentation": "bg-blue-50 text-blue-700 border-blue-200"
-    };
-    
-    return statusClasses[status] || "bg-gray-50 text-gray-700 border-gray-200";
+  const getPolicyStatus = (validUntil) => {
+    try {
+      const endDate = new Date(validUntil);
+      const today = new Date();
+      return endDate > today ? "Active" : "Expired";
+    } catch (error) {
+      return "Unknown";
+    }
+  };
+
+  const calculateTotalClaimAmount = (claimsData) => {
+    if (!Array.isArray(claimsData)) return 0;
+    return claimsData.reduce((sum, claim) => sum + claim.requestedAmount, 0);
   };
 
   const tabs = [
     { id: "overview", name: "Overview", icon: UserIcon },
-    { id: "policies", name: "Policies", icon: DocumentTextIcon, count: customer.policies?.length || 0 },
-    { id: "claims", name: "Claims", icon: ClipboardDocumentListIcon, count: customer.claims?.length || 0 }
+    {
+      id: "policies",
+      name: "Policies",
+      icon: DocumentTextIcon,
+      count: policies?.data?.length || 0,
+    },
+    {
+      id: "claims",
+      name: "Claims",
+      icon: ClipboardDocumentListIcon,
+      count: claims?.data?.length || 0,
+    },
   ];
 
   const EmptyState = ({ title, description, icon: Icon }) => (
@@ -44,22 +68,37 @@ export const CustomerDetailModal = ({ customer, isOpen, onClose }) => {
     </div>
   );
 
+  const LoadingState = () => (
+    <div className="flex items-center justify-center py-8">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      <span className="ml-3 text-gray-600">Loading...</span>
+    </div>
+  );
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-screen items-center justify-center p-4 py-8">
-        <div className="fixed inset-0 bg-black bg-opacity-25 transition-opacity" onClick={onClose} />
-        
+        <div
+          className="fixed inset-0 bg-black bg-opacity-25 transition-opacity"
+          onClick={onClose}
+        />
+
         <div className="relative bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col">
-          {/* Header - Fixed */}
+          {/* Header */}
           <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-blue-50">
             <div className="flex items-center space-x-4">
               <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
                 <span className="text-indigo-600 font-semibold text-lg">
-                  {customer.name.split(' ').map(n => n[0]).join('')}
+                  {customer.username
+                    ?.split(" ")
+                    .map((n) => n[0])
+                    .join("")}
                 </span>
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-gray-800">{customer.name}</h2>
+                <h2 className="text-xl font-semibold text-gray-800">
+                  {customer.username}
+                </h2>
                 <p className="text-gray-600">Customer ID: {customer.id}</p>
               </div>
             </div>
@@ -71,7 +110,7 @@ export const CustomerDetailModal = ({ customer, isOpen, onClose }) => {
             </button>
           </div>
 
-          {/* Tabs - Fixed */}
+          {/* Tabs */}
           <div className="flex-shrink-0 border-b border-gray-200">
             <nav className="flex space-x-8 px-6">
               {tabs.map((tab) => (
@@ -87,9 +126,13 @@ export const CustomerDetailModal = ({ customer, isOpen, onClose }) => {
                   <tab.icon className="h-5 w-5" />
                   <span>{tab.name}</span>
                   {tab.count !== undefined && (
-                    <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
-                      activeTab === tab.id ? "bg-indigo-100 text-indigo-600" : "bg-gray-100 text-gray-500"
-                    }`}>
+                    <span
+                      className={`ml-2 px-2 py-1 text-xs rounded-full ${
+                        activeTab === tab.id
+                          ? "bg-indigo-100 text-indigo-600"
+                          : "bg-gray-100 text-gray-500"
+                      }`}
+                    >
                       {tab.count}
                     </span>
                   )}
@@ -98,45 +141,83 @@ export const CustomerDetailModal = ({ customer, isOpen, onClose }) => {
             </nav>
           </div>
 
-          {/* Tab Content - Scrollable */}
+          {/* Content */}
           <div className="flex-1 overflow-y-auto">
             <div className="p-6">
               {activeTab === "overview" && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                      <h3 className="text-lg font-medium text-gray-800">Contact Information</h3>
+                      <h3 className="text-lg font-medium text-gray-800">
+                        Contact Information
+                      </h3>
                       <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                         <div>
-                          <label className="text-sm font-medium text-gray-500">Email</label>
+                          <label className="text-sm font-medium text-gray-500">
+                            Email
+                          </label>
                           <p className="text-gray-800">{customer.email}</p>
                         </div>
                         <div>
-                          <label className="text-sm font-medium text-gray-500">Phone</label>
-                          <p className="text-gray-800">{customer.phone}</p>
+                          <label className="text-sm font-medium text-gray-500">
+                            Phone
+                          </label>
+                          <p className="text-gray-800">
+                            {customer.phonenumber}
+                          </p>
                         </div>
                         <div>
-                          <label className="text-sm font-medium text-gray-500">Address</label>
+                          <label className="text-sm font-medium text-gray-500">
+                            Address
+                          </label>
                           <p className="text-gray-800">{customer.address}</p>
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-4">
-                      <h3 className="text-lg font-medium text-gray-800">Account Summary</h3>
+                      <h3 className="text-lg font-medium text-gray-800">
+                        Account Summary
+                      </h3>
                       <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                         <div className="flex justify-between">
-                          <span className="text-sm font-medium text-gray-500">Total Policies</span>
-                          <span className="text-gray-800 font-semibold">{customer.policies?.length || 0}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm font-medium text-gray-500">Total Claims</span>
-                          <span className="text-gray-800 font-semibold">{customer.claims?.length || 0}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm font-medium text-gray-500">Active Policies</span>
+                          <span className="text-sm font-medium text-gray-500">
+                            Total Policies
+                          </span>
                           <span className="text-gray-800 font-semibold">
-                            {customer.policies?.filter(p => p.status === "Active").length || 0}
+                            {policies?.data?.length || 0}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm font-medium text-gray-500">
+                            Total Premium Amount
+                          </span>
+                          <span className="text-gray-800 font-semibold">
+                            ₹
+                            {policies?.data
+                              ?.reduce((sum, policy) => sum + policy.premium, 0)
+                              ?.toLocaleString() || 0}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm font-medium text-gray-500">
+                            Total Claims
+                          </span>
+                          <span className="text-gray-800 font-semibold">
+                            {Array.isArray(claims?.data)
+                              ? claims.data.length
+                              : 0}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm font-medium text-gray-500">
+                            Total Claim Amount
+                          </span>
+                          <span className="text-gray-800 font-semibold">
+                            ₹
+                            {calculateTotalClaimAmount(
+                              claims?.data
+                            ).toLocaleString()}
                           </span>
                         </div>
                       </div>
@@ -147,37 +228,79 @@ export const CustomerDetailModal = ({ customer, isOpen, onClose }) => {
 
               {activeTab === "policies" && (
                 <div>
-                  <h3 className="text-lg font-medium text-gray-800 mb-4">Policy History</h3>
-                  {customer.policies && customer.policies.length > 0 ? (
+                  <h3 className="text-lg font-medium text-gray-800 mb-4">
+                    Policy History
+                  </h3>
+                  {policies.isLoading ? (
+                    <LoadingState />
+                  ) : policies.error ? (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <div className="flex items-start">
+                        <ExclamationTriangleIcon className="h-5 w-5 text-red-600 mt-0.5" />
+                        <div className="ml-3">
+                          <p className="text-sm text-red-700">
+                            {policies.error}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : policies.data?.length > 0 ? (
                     <div className="space-y-4">
-                      {customer.policies.map((policy) => (
-                        <div key={policy.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                      {policies.data.map((policy) => (
+                        <div
+                          key={policy.id}
+                          className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow"
+                        >
                           <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <h4 className="font-medium text-gray-800">{policy.name}</h4>
-                              <p className="text-sm text-gray-500">Policy ID: {policy.id}</p>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-medium text-gray-800">
+                                  {policy.policyName}
+                                </h4>
+                                <span
+                                  className={`px-2 py-0.5 text-xs rounded-full ${
+                                    getPolicyStatus(policy.validUntil) ===
+                                    "Active"
+                                      ? "bg-green-100 text-green-800"
+                                      : "bg-red-100 text-red-800"
+                                  }`}
+                                >
+                                  {getPolicyStatus(policy.validUntil)}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-500">
+                                Policy ID: {policy.id}
+                              </p>
                             </div>
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusBadge(policy.status)}`}>
-                              {policy.status}
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                              ₹{policy.premium.toLocaleString()}
                             </span>
                           </div>
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
-                              <span className="text-gray-500">Type</span>
-                              <p className="font-medium">{policy.type}</p>
+                              <span className="text-gray-500">Vehicle</span>
+                              <p className="font-medium">{policy.vehicle}</p>
                             </div>
                             <div>
-                              <span className="text-gray-500">Vehicle</span>
-                              <p className="font-medium">{policy.vehicleRegNo}</p>
+                              <span className="text-gray-500">License No</span>
+                              <p className="font-medium">{policy.licenceNo}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Valid From</span>
+                              <p className="font-medium">{policy.validFrom}</p>
                             </div>
                             <div>
                               <span className="text-gray-500">Valid Until</span>
-                              <p className="font-medium">{formatDate(policy.validityEnd)}</p>
+                              <p className="font-medium">{policy.validUntil}</p>
                             </div>
-                            <div>
-                              <span className="text-gray-500">Premium</span>
-                              <p className="font-medium">₹{policy.premiumPaid?.toLocaleString()}</p>
-                            </div>
+                          </div>
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            <span className="text-sm text-gray-500">
+                              Agent Assigned:{" "}
+                            </span>
+                            <span className="text-sm font-medium text-gray-700">
+                              {policy.agentAssigned}
+                            </span>
                           </div>
                         </div>
                       ))}
@@ -194,33 +317,77 @@ export const CustomerDetailModal = ({ customer, isOpen, onClose }) => {
 
               {activeTab === "claims" && (
                 <div>
-                  <h3 className="text-lg font-medium text-gray-800 mb-4">Claims History</h3>
-                  {customer.claims && customer.claims.length > 0 ? (
+                  <h3 className="text-lg font-medium text-gray-800 mb-4">
+                    Claims History
+                  </h3>
+                  {claims.isLoading ? (
+                    <LoadingState />
+                  ) : claims.error ? (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <div className="flex items-start">
+                        <ExclamationTriangleIcon className="h-5 w-5 text-red-600 mt-0.5" />
+                        <div className="ml-3">
+                          <p className="text-sm text-red-700">{claims.error}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : claims.data?.length > 0 ? (
                     <div className="space-y-4">
-                      {customer.claims.map((claim) => (
-                        <div key={claim.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                      {claims.data.map((claim) => (
+                        <div
+                          key={claim.claimId}
+                          className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow"
+                        >
                           <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <h4 className="font-medium text-gray-800">Claim #{claim.id}</h4>
-                              <p className="text-sm text-gray-500">Policy: {claim.policyId}</p>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-medium text-gray-800">
+                                  {claim.policyName}
+                                </h4>
+                                <span
+                                  className={`px-2 py-0.5 text-xs rounded-full ${
+                                    claim.status === "FILED"
+                                      ? "bg-amber-100 text-amber-800"
+                                      : claim.verified
+                                      ? "bg-green-100 text-green-800"
+                                      : "bg-red-100 text-red-800"
+                                  }`}
+                                >
+                                  {claim.status}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-500">
+                                Claim ID: {claim.claimId} • Policy ID:{" "}
+                                {claim.policyId}
+                              </p>
                             </div>
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusBadge(claim.status)}`}>
-                              {claim.status}
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                              ₹{claim.requestedAmount.toLocaleString()}
                             </span>
                           </div>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-3">
-                            <div>
-                              <span className="text-gray-500">Claim Amount</span>
-                              <p className="font-medium">₹{claim.amount?.toLocaleString()}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Incident Date</span>
-                              <p className="font-medium">{formatDate(claim.incidentDate)}</p>
-                            </div>
+                          <div className="mt-2 text-sm text-gray-600">
+                            <p className="font-medium mb-1">Description:</p>
+                            <p className="bg-gray-50 p-3 rounded-lg">
+                              {claim.briefDescription}
+                            </p>
                           </div>
-                          <div>
-                            <span className="text-gray-500">Description</span>
-                            <p className="text-sm mt-1 bg-gray-50 p-2 rounded">{claim.description}</p>
+                          <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-sm">
+                            <div>
+                              <span className="text-gray-500">Filed on: </span>
+                              <span className="font-medium">
+                                {formatDate(claim.dateFiled)}
+                              </span>
+                            </div>
+                            {claim.verificationComments && (
+                              <div className="text-right">
+                                <span className="text-gray-500">
+                                  Agent Comments:{" "}
+                                </span>
+                                <span className="font-medium">
+                                  {claim.verificationComments}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -228,7 +395,7 @@ export const CustomerDetailModal = ({ customer, isOpen, onClose }) => {
                   ) : (
                     <EmptyState
                       title="No Claims Found"
-                      description="This customer hasn't filed any insurance claims yet."
+                      description="This customer hasn't filed any claims yet."
                       icon={ClipboardDocumentListIcon}
                     />
                   )}
@@ -237,7 +404,7 @@ export const CustomerDetailModal = ({ customer, isOpen, onClose }) => {
             </div>
           </div>
 
-          {/* Footer - Fixed with more margin */}
+          {/* Footer */}
           <div className="flex-shrink-0 border-t border-gray-200 px-6 py-6 bg-gray-50">
             <div className="flex justify-end">
               <button
