@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "../layout/DashboardLayout";
 import { AgentMenuItems } from "../../constants/data";
-import { useAgent } from "../../context/AgentContext";
+import { useAuth } from "../../context/AuthProvider"; // Change from useAgent to useAuth
+import axios from "axios"; // Add axios import
 import { 
   EyeIcon, 
   ArrowPathIcon,
@@ -10,43 +11,143 @@ import {
   CalendarIcon,
   CurrencyRupeeIcon,
   UserIcon,
-  TruckIcon
+  TruckIcon,
+  ExclamationTriangleIcon
 } from "@heroicons/react/24/outline";
-import { format, isAfter } from "date-fns";
+import { format, isAfter, parseISO } from "date-fns";
 import { toast } from "react-hot-toast";
 
 export const AgentPolicies = () => {
-  const { assignedPolicies } = useAgent();
+  const { user } = useAuth(); // Get current logged-in agent
+  const [policies, setPolicies] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Fetch policies and customer details
+  useEffect(() => {
+    const fetchPoliciesWithCustomerDetails = async () => {
+      setIsLoading(true);
+      setError("");
+
+      try {
+        // First API call - fetch agent's policies
+        const policiesResponse = await axios.get(
+          `http://localhost:8084/api/policies/agent/${user.id}`
+        );
+
+        console.log("Policies API Response:", policiesResponse.data);
+
+        if (!policiesResponse.data.length) {
+          setPolicies([]);
+          setIsLoading(false);
+          return;
+        }
+
+        // Second API call - fetch customer details for each policy
+        const customerDetailsPromises = policiesResponse.data.map((policy) =>
+          axios.post("http://localhost:8087/auth/getuser", { id: policy.customerId })
+        );
+
+        const customerDetails = await Promise.allSettled(customerDetailsPromises);
+
+        // Map policies with customer information
+        const policiesWithCustomers = policiesResponse.data.map((policy, index) => {
+          const customerResult = customerDetails[index];
+          let customerInfo = {
+            customerName: "Unknown Customer",
+            customerEmail: "N/A"
+          };
+
+          if (customerResult.status === "fulfilled") {
+            customerInfo = {
+              customerName: customerResult.value.data.username,
+              customerEmail: customerResult.value.data.email
+            };
+          }
+
+          // Parse dates for calculations
+          const parseDate = (dateString) => {
+            try {
+              // Handle format "04 Jun, 2025"
+              const parsedDate = new Date(dateString);
+              return isNaN(parsedDate) ? new Date() : parsedDate;
+            } catch (error) {
+              console.warn("Date parsing error:", dateString);
+              return new Date();
+            }
+          };
+
+          return {
+            id: policy.id,
+            name: policy.policyName,
+            premiumPaid: policy.premium,
+            vehicleRegNo: policy.licenceNo,
+            vehicle: policy.vehicle, // Full vehicle string as-is
+            validityStart: parseDate(policy.validFrom),
+            validityEnd: parseDate(policy.validUntil), // Map validUntil to validityEnd
+            agentAssigned: policy.agentAssigned,
+            agentId: policy.agentId,
+            customerId: policy.customerId,
+            ...customerInfo
+          };
+        });
+
+        setPolicies(policiesWithCustomers);
+      } catch (error) {
+        console.error("Error fetching policies:", error);
+        
+        let errorMessage = "Failed to fetch policies. Please try again.";
+        
+        if (error.response?.status === 404) {
+          errorMessage = "No policies found for this agent.";
+        } else if (error.response?.status === 500) {
+          errorMessage = "Server error. Please try again later.";
+        } else if (error.code === 'ECONNREFUSED') {
+          errorMessage = "Cannot connect to server. Please check if the backend is running.";
+        } else if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+        
+        setError(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user?.id) {
+      fetchPoliciesWithCustomerDetails();
+    }
+  }, [user?.id]);
 
   // Auto-determine status based on validity end date
   const getPolicyStatus = (policy) => {
     const today = new Date();
-    const expiryDate = new Date(policy.validityEnd);
+    const expiryDate = policy.validityEnd;
     
     if (isAfter(today, expiryDate)) {
       return "Expired";
     }
-    return policy.status || "Active";
+    return "Active";
   };
 
   // Filter policies based on search term
-  const filteredPolicies = assignedPolicies.filter(policy => {
+  const filteredPolicies = policies.filter(policy => {
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
     return (
       policy.name.toLowerCase().includes(searchLower) ||
-      policy.id.toLowerCase().includes(searchLower) ||
+      policy.id.toString().toLowerCase().includes(searchLower) ||
       policy.vehicleRegNo.toLowerCase().includes(searchLower) ||
       policy.customerName.toLowerCase().includes(searchLower)
     );
   });
 
-  const formatDate = (dateString) => {
+  const formatDate = (date) => {
     try {
-      return format(new Date(dateString), "dd MMM, yyyy");
+      return format(date, "dd MMM, yyyy");
     } catch (error) {
-      return dateString;
+      return "Invalid Date";
     }
   };
 
@@ -72,7 +173,7 @@ export const AgentPolicies = () => {
 
   const getExpiryWarning = (validityEnd) => {
     const today = new Date();
-    const expiryDate = new Date(validityEnd);
+    const expiryDate = validityEnd;
     const diffTime = expiryDate - today;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
@@ -86,6 +187,41 @@ export const AgentPolicies = () => {
     return null;
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <DashboardLayout menuItems={AgentMenuItems}>
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <span className="ml-3 text-gray-600">Loading policies...</span>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <DashboardLayout menuItems={AgentMenuItems}>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="flex items-start">
+            <ExclamationTriangleIcon className="h-6 w-6 text-red-600 mt-0.5" />
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Error loading policies</h3>
+              <p className="text-sm text-red-700 mt-1">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-3 text-sm text-red-600 hover:text-red-800 underline"
+              >
+                Try again
+              </button>
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout menuItems={AgentMenuItems}>
       <div className="space-y-4">
@@ -98,7 +234,7 @@ export const AgentPolicies = () => {
           <div className="mt-2 sm:mt-0">
             <div className="bg-blue-50 px-3 py-1 rounded-full">
               <span className="text-xs font-medium text-blue-700">
-                Total: {assignedPolicies.length}
+                Total: {policies.length}
               </span>
             </div>
           </div>
@@ -137,13 +273,7 @@ export const AgentPolicies = () => {
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusBadge(status)}`}>
                             {status}
                           </span>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                            policy.type === "Two-Wheeler" 
-                              ? "bg-emerald-100 text-emerald-700" 
-                              : "bg-blue-100 text-blue-700"
-                          }`}>
-                            {policy.type}
-                          </span>
+                          {/* Removed type badge as per requirement */}
                         </div>
                         <h3 className="text-sm font-semibold text-gray-800 mb-1 line-clamp-1">
                           {policy.name}
@@ -191,7 +321,7 @@ export const AgentPolicies = () => {
                         </p>
                         <p className="text-sm font-medium text-gray-800">{policy.vehicleRegNo}</p>
                         <p className="text-xs text-gray-600 truncate">
-                          {policy.manufacturer} {policy.model}
+                          {policy.vehicle}
                         </p>
                       </div>
 
@@ -200,13 +330,13 @@ export const AgentPolicies = () => {
                         <div>
                           <p className="text-xs text-gray-500 mb-1">Valid From</p>
                           <p className="text-xs font-medium text-gray-800">
-                            {format(new Date(policy.validityStart), "dd MMM, yy")}
+                            {formatDate(policy.validityStart)}
                           </p>
                         </div>
                         <div>
                           <p className="text-xs text-gray-500 mb-1">Valid Until</p>
                           <p className={`text-xs font-medium ${status === 'Expired' ? 'text-red-600' : 'text-gray-800'}`}>
-                            {format(new Date(policy.validityEnd), "dd MMM, yy")}
+                            {formatDate(policy.validityEnd)}
                           </p>
                         </div>
                       </div>

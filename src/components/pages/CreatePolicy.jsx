@@ -1,123 +1,51 @@
-import { useState } from "react";
+import axios from "axios";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "../layout/DashboardLayout";
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
 import { addDays, format } from "date-fns";
-import { useAgent } from "../../context/AgentContext";
 import { FormInput } from "../components/FormInput";
 import { CustomerSearchSelect } from "../components/CustomerSearch";
 import { toast } from "react-hot-toast";
-import { 
-  ChevronRightIcon, 
+import {
+  ChevronRightIcon,
   ChevronLeftIcon,
   UserIcon,
   TruckIcon,
   CreditCardIcon,
   CheckCircleIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  ExclamationTriangleIcon
 } from "@heroicons/react/24/outline";
 import { AgentMenuItems } from "../../constants/data";
-
-// Import policy data from BrowsePolicies
-const policiesData = [
-  {
-    id: "TW-1001",
-    name: "Basic Two-Wheeler Insurance",
-    type: "Two-Wheeler",
-    premium: 1200,
-    coverage: "Third-party liability, Own damage, Personal accident cover",
-    validity: "1 year with option to renew",
-    details: "Covers damages up to ₹50,000 for two-wheelers with engine capacity under 150cc.",
-  },
-  {
-    id: "TW-1002",
-    name: "Premium Two-Wheeler Insurance",
-    type: "Two-Wheeler",
-    premium: 2500,
-    coverage: "Comprehensive coverage with zero depreciation, Roadside assistance",
-    validity: "1 year with option to renew",
-    details: "Ideal for high-end two-wheelers with complete protection against damages and theft.",
-  },
-  {
-    id: "TW-1003",
-    name: "Student Two-Wheeler Plan",
-    type: "Two-Wheeler",
-    premium: 800,
-    coverage: "Basic third-party liability, Limited own damage cover",
-    validity: "1 year with option to renew",
-    details: "Special plan for students with affordable premiums and essential coverage.",
-  },
-  {
-    id: "TW-1004",
-    name: "Electric Scooter Insurance",
-    type: "Two-Wheeler",
-    premium: 1800,
-    coverage: "Battery cover, Electrical damages, Charging station accidents",
-    validity: "1 year with option to renew",
-    details: "Specialized coverage for electric two-wheelers including battery protection.",
-  },
-  {
-    id: "TW-1005",
-    name: "Delivery Partner Insurance",
-    type: "Two-Wheeler",
-    premium: 3200,
-    coverage: "Commercial usage, Enhanced third-party, Accident cover",
-    validity: "1 year with option to renew",
-    details: "Designed for delivery partners with extended coverage for commercial usage.",
-  },
-  {
-    id: "FW-2001",
-    name: "Basic Car Insurance",
-    type: "Four-Wheeler",
-    premium: 5500,
-    coverage: "Third-party liability, Basic own damage cover",
-    validity: "1 year with option to renew",
-    details: "Mandatory coverage for all cars with basic protection against damages.",
-  },
-  {
-    id: "FW-2002",
-    name: "Premium Sedan Insurance",
-    type: "Four-Wheeler",
-    premium: 12000,
-    coverage: "Comprehensive coverage, Zero depreciation, 24/7 roadside assistance",
-    validity: "1 year with option to renew",
-    details: "Complete protection for sedans with premium features and addon benefits.",
-  },
-  {
-    id: "FW-2003",
-    name: "SUV Special Coverage",
-    type: "Four-Wheeler",
-    premium: 18000,
-    coverage: "All-terrain coverage, Flood damage, Engine protection",
-    validity: "1 year with option to renew",
-    details: "Specialized coverage for SUVs with protection against various terrains and conditions.",
-  },
-  {
-    id: "FW-2004",
-    name: "Electric Car Insurance",
-    type: "Four-Wheeler",
-    premium: 15000,
-    coverage: "Battery cover, Charging accidents, Special electric components",
-    validity: "1 year with option to renew",
-    details: "Tailored for electric vehicles with special coverage for EV-specific components.",
-  },
-  {
-    id: "FW-2005",
-    name: "Luxury Vehicle Insurance",
-    type: "Four-Wheeler",
-    premium: 35000,
-    coverage: "Premium comprehensive, Import parts coverage, Valet parking",
-    validity: "1 year with option to renew",
-    details: "Elite coverage for luxury vehicles with specialized service and import parts protection.",
-  },
-];
+import { useAuth } from "../../context/AuthProvider";
 
 // Vehicle manufacturers list
 const manufacturers = [
-  "Maruti Suzuki", "Hyundai", "Tata Motors", "Mahindra", "Honda", "Toyota", "Kia", "MG", 
-  "Volkswagen", "Skoda", "Ford", "Renault", "BMW", "Mercedes-Benz", "Audi", "Bajaj", 
-  "Hero", "TVS", "Royal Enfield", "Yamaha", "Suzuki", "Honda Motorcycle", "Other"
+  "Maruti Suzuki",
+  "Hyundai",
+  "Tata Motors",
+  "Mahindra",
+  "Honda",
+  "Toyota",
+  "Kia",
+  "MG",
+  "Volkswagen",
+  "Skoda",
+  "Ford",
+  "Renault",
+  "BMW",
+  "Mercedes-Benz",
+  "Audi",
+  "Bajaj",
+  "Hero",
+  "TVS",
+  "Royal Enfield",
+  "Yamaha",
+  "Suzuki",
+  "Honda Motorcycle",
+  "Other",
 ];
 
 // Validation schemas for each step
@@ -132,7 +60,10 @@ const policySelectionSchema = Yup.object({
 const vehicleDetailsSchema = Yup.object({
   registrationNumber: Yup.string()
     .required("Registration number is required")
-    .matches(/^[A-Z]{2}[0-9]{2}[A-Z]{1,2}[0-9]{4}$/, "Enter a valid registration number (e.g., KA01AB1234)"),
+    .matches(
+      /^[A-Z]{2}[0-9]{2}[A-Z]{1,2}[0-9]{4}$/,
+      "Enter a valid registration number (e.g., KA01AB1234)"
+    ),
   model: Yup.string().required("Model is required"),
   manufacturer: Yup.string().required("Manufacturer is required"),
   yearOfPurchase: Yup.number()
@@ -145,14 +76,70 @@ const vehicleDetailsSchema = Yup.object({
 
 export const CreatePolicy = () => {
   const navigate = useNavigate();
-  const { assignedCustomers, addAgentCreatedPolicy } = useAgent();
+  const { user } = useAuth();
+  const [customers, setCustomers] = useState([]);
+  const [isLoadingCustomers, setIsLoadingCustomers] = useState(true);
+  const [customerError, setCustomerError] = useState("");
+
+  // Add these new state variables for policies
+  const [policies, setPolicies] = useState([]);
+  const [isLoadingPolicies, setIsLoadingPolicies] = useState(false);
+  const [policiesError, setPoliciesError] = useState("");
+
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     selectedCustomer: null,
     selectedPolicy: null,
-    vehicleDetails: null
+    vehicleDetails: null,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const fetchPolicies = async () => {
+      setIsLoadingPolicies(true);
+      setPoliciesError("");
+
+      try {
+        const response = await axios.get("http://localhost:8084/api/policies");
+
+        console.log("Policies API Response:", response.data);
+
+        // Map API response to frontend format (same as BrowsePolicies)
+        const mappedPolicies = response.data.map((policy) => ({
+          id: policy.id,
+          name: policy.pname, // Map pname to name
+          type: policy.type,
+          premium: policy.premium,
+          coverage: policy.coverageDetails, // Map coverageDetails to coverage
+          validity: policy.validity,
+          details: policy.coverageDetails, // Use coverageDetails for details as well
+        }));
+
+        setPolicies(mappedPolicies);
+      } catch (error) {
+        console.error("Error fetching policies:", error);
+
+        let errorMessage = "Failed to fetch policies. Please try again.";
+
+        if (error.response?.status === 404) {
+          errorMessage = "No policies found.";
+        } else if (error.response?.status === 500) {
+          errorMessage = "Server error. Please try again later.";
+        } else if (error.code === "ECONNREFUSED") {
+          errorMessage =
+            "Cannot connect to server. Please check if the backend is running.";
+        } else if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+
+        setPoliciesError(errorMessage);
+      } finally {
+        setIsLoadingPolicies(false);
+      }
+    };
+
+    fetchPolicies();
+  }, []);
 
   const steps = [
     { id: 1, name: "Customer", icon: UserIcon },
@@ -160,6 +147,58 @@ export const CreatePolicy = () => {
     { id: 3, name: "Vehicle", icon: TruckIcon },
     { id: 4, name: "Review", icon: CreditCardIcon },
   ];
+
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      setIsLoadingCustomers(true);
+      setCustomerError("");
+
+      try {
+        // First API call to get customer IDs
+        const customerIdsResponse = await axios.get(
+          `http://localhost:8084/api/policies/agent/${user.id}/customers`
+        );
+
+        if (!customerIdsResponse.data.customerIds?.length) {
+          setCustomers([]);
+          setIsLoadingCustomers(false);
+          return;
+        }
+
+        // Second API call to get customer details
+        const customerDetailsPromises =
+          customerIdsResponse.data.customerIds.map((customerId) =>
+            axios.post("http://localhost:8087/auth/getuser", { id: customerId })
+          );
+
+        const customerDetails = await Promise.allSettled(
+          customerDetailsPromises
+        );
+
+        // Filter and map successful responses
+        const validCustomers = customerDetails
+          .filter((result) => result.status === "fulfilled")
+          .map((result) => ({
+            ...result.value.data,
+            name: result.value.data.username, // Map username to name for compatibility
+          }));
+
+        setCustomers(validCustomers);
+      } catch (error) {
+        console.error("Error fetching customers:", error);
+        setCustomerError(
+          error.response?.data?.message ||
+            "Failed to fetch customers. Please try again later."
+        );
+      } finally {
+        setIsLoadingCustomers(false);
+      }
+    };
+
+    if (user?.id) {
+      fetchCustomers();
+    }
+  }, [user?.id]);
 
   // Calculate years for dropdown
   const currentYear = new Date().getFullYear();
@@ -176,25 +215,29 @@ export const CreatePolicy = () => {
 
   // Filter policies by type
   const [policyFilter, setPolicyFilter] = useState("All");
-  const filteredPolicies = policyFilter === "All" 
-    ? policiesData 
-    : policiesData.filter(policy => policy.type === policyFilter);
+  const filteredPolicies =
+    policyFilter === "All"
+      ? policies
+      : policies.filter((policy) => policy.type === policyFilter);
 
   // Step 1: Customer Selection
   const handleCustomerSelection = (values) => {
-    setFormData(prev => ({ ...prev, selectedCustomer: values.selectedCustomer }));
+    setFormData((prev) => ({
+      ...prev,
+      selectedCustomer: values.selectedCustomer,
+    }));
     setCurrentStep(2);
   };
 
   // Step 2: Policy Selection
   const handlePolicySelection = (policy) => {
-    setFormData(prev => ({ ...prev, selectedPolicy: policy }));
+    setFormData((prev) => ({ ...prev, selectedPolicy: policy }));
     setCurrentStep(3);
   };
 
   // Step 3: Vehicle Details
   const handleVehicleDetails = (values) => {
-    setFormData(prev => ({ ...prev, vehicleDetails: values }));
+    setFormData((prev) => ({ ...prev, vehicleDetails: values }));
     setCurrentStep(4);
   };
 
@@ -212,74 +255,97 @@ export const CreatePolicy = () => {
   };
 
   // Final submission
-  const handleFinalSubmission = async () => {
-    setIsSubmitting(true);
-  
-    try {
-      console.log("Starting policy creation...");
-      console.log("Form data:", formData);
-  
-      // Validate form data
-      if (!formData.selectedCustomer) {
-        throw new Error("No customer selected");
-      }
-      if (!formData.selectedPolicy) {
-        throw new Error("No policy selected");
-      }
-      if (!formData.vehicleDetails) {
-        throw new Error("No vehicle details provided");
-      }
-  
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-  
-      // Generate policy details
-      const startDate = new Date();
-      const endDate = addDays(startDate, formData.vehicleDetails.policyTerm * 365);
-      
-      const totalPremium = calculatePremium(formData.vehicleDetails.policyTerm);
-      const tax = calculateTax(totalPremium);
-      const totalAmount = Math.round(totalPremium + tax);
-  
-      // Create new policy object
-      const newPolicy = {
-        id: `POL-${currentYear}-${Math.floor(1000 + Math.random() * 9000)}`,
-        policyId: formData.selectedPolicy.id,
-        name: formData.selectedPolicy.name,
-        type: formData.selectedPolicy.type,
-        vehicleRegNo: formData.vehicleDetails.registrationNumber,
-        manufacturer: formData.vehicleDetails.manufacturer,
-        model: formData.vehicleDetails.model,
-        validityStart: format(startDate, "yyyy-MM-dd"),
-        validityEnd: format(endDate, "yyyy-MM-dd"),
-        premiumPaid: totalAmount,
-        insuredValue: formData.vehicleDetails.insuredValue,
-        customerName: formData.selectedCustomer.name,
-        customerEmail: formData.selectedCustomer.email,
-        status: "Active",
-        createdBy: "Agent"
-      };
-  
-      console.log("New policy object:", newPolicy);
-  
-      // Add policy using context function
-      await addAgentCreatedPolicy(newPolicy, formData.selectedCustomer.id);
-  
-      toast.success(`Policy created successfully for ${formData.selectedCustomer.name}!`);
-      
-      // Navigate to agent policies page
-      setTimeout(() => {
-        navigate("/agentDashboard/policies");
-      }, 1000);
-  
-    } catch (error) {
-      console.error("Policy creation error:", error);
-      toast.error(`Failed to create policy: ${error.message}`);
-    } finally {
-      setIsSubmitting(false);
+// Final submission
+const handleFinalSubmission = async () => {
+  setIsSubmitting(true);
+
+  try {
+    console.log("Starting policy creation...");
+    console.log("Form data:", formData);
+
+    // Validate form data
+    if (!formData.selectedCustomer) {
+      throw new Error("No customer selected");
     }
-  };
-  
+    if (!formData.selectedPolicy) {
+      throw new Error("No policy selected");
+    }
+    if (!formData.vehicleDetails) {
+      throw new Error("No vehicle details provided");
+    }
+
+    // Convert policy term number to string format (same as PolicyApplicationForm)
+    const formatPolicyTerm = (termNumber) => {
+      if (termNumber === 1) {
+        return "1 year";
+      } else {
+        return `${termNumber} years`;
+      }
+    };
+
+    // Prepare API request body similar to PolicyApplicationForm
+    const apiRequestBody = {
+      policyName: formData.selectedPolicy.name, // From selected policy
+      premium: formData.selectedPolicy.premium, // From selected policy
+      licenceNo: formData.vehicleDetails.registrationNumber, // Map registrationNumber to licenceNo
+      manufacturer: formData.vehicleDetails.manufacturer,
+      model: formData.vehicleDetails.model,
+      exshowroomPrice: formData.vehicleDetails.insuredValue, // Use insured value as ex-showroom price
+      yearOfPurchase: formData.vehicleDetails.yearOfPurchase,
+      idv: formData.vehicleDetails.insuredValue, // Map insuredValue to idv
+      policyTerm: formatPolicyTerm(formData.vehicleDetails.policyTerm), // Convert to string format
+      customerId: formData.selectedCustomer.id, // From selected customer
+      agentId: user.id // Add agent ID since this is agent-created
+    };
+
+    console.log("Submitting policy creation:", apiRequestBody);
+
+    // Make API call to backend (using same endpoint as PolicyApplicationForm for now)
+    const response = await axios.post(
+      "http://localhost:8084/api/policies/apply", // Should this be a different endpoint for agent creation?
+      apiRequestBody,
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log("Policy creation response:", response.data);
+
+    // Show success message with policy details
+    toast.success(
+      `Policy created successfully for ${formData.selectedCustomer.name}! Policy for ${response.data.vehicle} is valid from ${response.data.validFrom} to ${response.data.validUntil}.`,
+      { duration: 6000 }
+    );
+
+    // Navigate to agent policies page
+    setTimeout(() => {
+      navigate("/agentDashboard/policies");
+    }, 1000);
+
+  } catch (error) {
+    console.error("Policy creation error:", error);
+    
+    let errorMessage = "Failed to create policy. Please try again.";
+    
+    if (error.response?.status === 400) {
+      errorMessage = "Invalid policy data. Please check your inputs and try again.";
+    } else if (error.response?.status === 404) {
+      errorMessage = "Customer or policy not found. Please try again.";
+    } else if (error.response?.status === 500) {
+      errorMessage = "Server error. Please try again later.";
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.code === 'ECONNREFUSED') {
+      errorMessage = "Cannot connect to server. Please check if the backend is running.";
+    }
+    
+    toast.error(errorMessage);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <DashboardLayout menuItems={AgentMenuItems}>
@@ -290,13 +356,16 @@ export const CreatePolicy = () => {
             {steps.map((step, index) => (
               <div key={step.id} className="flex items-center">
                 <div className="flex items-center">
-                  <div className={`
+                  <div
+                    className={`
                     w-10 h-10 rounded-full flex items-center justify-center transition-colors
-                    ${currentStep >= step.id 
-                      ? "bg-indigo-600 text-white" 
-                      : "bg-gray-200 text-gray-500"
+                    ${
+                      currentStep >= step.id
+                        ? "bg-indigo-600 text-white"
+                        : "bg-gray-200 text-gray-500"
                     }
-                  `}>
+                  `}
+                  >
                     {currentStep > step.id ? (
                       <CheckCircleIcon className="w-6 h-6" />
                     ) : (
@@ -304,22 +373,32 @@ export const CreatePolicy = () => {
                     )}
                   </div>
                   <div className="ml-3 hidden sm:block">
-                    <p className={`text-sm font-medium ${
-                      currentStep >= step.id ? "text-indigo-600" : "text-gray-500"
-                    }`}>
+                    <p
+                      className={`text-sm font-medium ${
+                        currentStep >= step.id
+                          ? "text-indigo-600"
+                          : "text-gray-500"
+                      }`}
+                    >
                       Step {step.id}
                     </p>
-                    <p className={`text-xs ${
-                      currentStep >= step.id ? "text-indigo-500" : "text-gray-400"
-                    }`}>
+                    <p
+                      className={`text-xs ${
+                        currentStep >= step.id
+                          ? "text-indigo-500"
+                          : "text-gray-400"
+                      }`}
+                    >
                       {step.name}
                     </p>
                   </div>
                 </div>
                 {index < steps.length - 1 && (
-                  <div className={`h-1 w-16 mx-4 transition-colors ${
-                    currentStep > step.id ? "bg-indigo-600" : "bg-gray-200"
-                  }`} />
+                  <div
+                    className={`h-1 w-16 mx-4 transition-colors ${
+                      currentStep > step.id ? "bg-indigo-600" : "bg-gray-200"
+                    }`}
+                  />
                 )}
               </div>
             ))}
@@ -332,154 +411,281 @@ export const CreatePolicy = () => {
           {currentStep === 1 && (
             <div>
               <div className="border-b pb-4 mb-6">
-                <h1 className="text-2xl font-semibold text-gray-800">Select Customer</h1>
-                <p className="text-gray-600 mt-1">Choose the customer for whom you want to create a policy</p>
+                <h1 className="text-2xl font-semibold text-gray-800">
+                  Select Customer
+                </h1>
+                <p className="text-gray-600 mt-1">
+                  Choose the customer for whom you want to create a policy
+                </p>
               </div>
 
-              <Formik
-                initialValues={{ selectedCustomer: null }}
-                validationSchema={customerSelectionSchema}
-                onSubmit={handleCustomerSelection}
-              >
-                {({ values, setFieldValue, errors, touched }) => (
-                  <Form className="space-y-6">
-                    <CustomerSearchSelect
-                      customers={assignedCustomers}
-                      selectedCustomer={values.selectedCustomer}
-                      onCustomerSelect={(customer) => setFieldValue("selectedCustomer", customer)}
-                      error={touched.selectedCustomer && errors.selectedCustomer}
-                    />
+              {isLoadingCustomers ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                  <span className="ml-3 text-gray-600">
+                    Loading customers...
+                  </span>
+                </div>
+              ) : customerError ? (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-start">
+                    <ExclamationTriangleIcon className="h-5 w-5 text-red-600 mt-0.5" />
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-red-800">
+                        Error loading customers
+                      </h3>
+                      <p className="text-sm text-red-700 mt-1">
+                        {customerError}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <Formik
+                  initialValues={{ selectedCustomer: null }}
+                  validationSchema={customerSelectionSchema}
+                  onSubmit={handleCustomerSelection}
+                >
+                  {({ values, setFieldValue, errors, touched }) => (
+                    <Form className="space-y-6">
+                      <CustomerSearchSelect
+                        customers={customers}
+                        selectedCustomer={values.selectedCustomer}
+                        onCustomerSelect={(customer) =>
+                          setFieldValue("selectedCustomer", customer)
+                        }
+                        error={
+                          touched.selectedCustomer && errors.selectedCustomer
+                        }
+                      />
 
-                    {values.selectedCustomer && (
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <h3 className="font-medium text-gray-800 mb-3">Customer Details</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-gray-500">Name:</span>
-                            <p className="font-medium">{values.selectedCustomer.name}</p>
-                          </div>
-                          <div>
-                            <span className="text-gray-500">Email:</span>
-                            <p className="font-medium">{values.selectedCustomer.email}</p>
-                          </div>
-                          <div>
-                            <span className="text-gray-500">Phone:</span>
-                            <p className="font-medium">{values.selectedCustomer.phone}</p>
-                          </div>
-                          <div>
-                            <span className="text-gray-500">Existing Policies:</span>
-                            <p className="font-medium">{values.selectedCustomer.policies?.length || 0}</p>
+                      {values.selectedCustomer && (
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <h3 className="font-medium text-gray-800 mb-3">
+                            Customer Details
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-500">Name:</span>
+                              <p className="font-medium">
+                                {values.selectedCustomer.name}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Email:</span>
+                              <p className="font-medium">
+                                {values.selectedCustomer.email}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Phone:</span>
+                              <p className="font-medium">
+                                {values.selectedCustomer.phonenumber}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">
+                                Customer ID:
+                              </span>
+                              <p className="font-medium">
+                                #{values.selectedCustomer.id}
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    <div className="flex justify-end pt-6 border-t">
-                      <button
-                        type="submit"
-                        className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center"
-                      >
-                        Continue
-                        <ChevronRightIcon className="w-4 h-4 ml-2" />
-                      </button>
-                    </div>
-                  </Form>
-                )}
-              </Formik>
+                      <div className="flex justify-end pt-6 border-t">
+                        <button
+                          type="submit"
+                          className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center"
+                        >
+                          Continue
+                          <ChevronRightIcon className="w-4 h-4 ml-2" />
+                        </button>
+                      </div>
+                    </Form>
+                  )}
+                </Formik>
+              )}
             </div>
           )}
 
           {/* Step 2: Policy Selection */}
           {currentStep === 2 && (
-            <div>
-              <div className="border-b pb-4 mb-6">
-                <h1 className="text-2xl font-semibold text-gray-800">Select Policy</h1>
-                <p className="text-gray-600 mt-1">Choose the insurance policy type</p>
-              </div>
+    <div>
+      <div className="border-b pb-4 mb-6">
+        <h1 className="text-2xl font-semibold text-gray-800">
+          Select Policy
+        </h1>
+        <p className="text-gray-600 mt-1">
+          Choose the insurance policy type
+        </p>
+      </div>
 
-              {/* Policy Filter */}
-              <div className="mb-6">
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm font-medium text-gray-700">Filter by type:</span>
-                  {["All", "Two-Wheeler", "Four-Wheeler"].map((type) => (
-                    <button
-                      key={type}
-                      onClick={() => setPolicyFilter(type)}
-                      className={`px-4 py-2 text-sm rounded-lg transition-colors ${
-                        policyFilter === type 
-                          ? "bg-indigo-600 text-white" 
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      {type}
-                    </button>
-                  ))}
-                </div>
-              </div>
+      {isLoadingPolicies ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <span className="ml-3 text-gray-600">Loading policies...</span>
+        </div>
+      ) : policiesError ? (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <div className="flex items-start">
+            <ExclamationTriangleIcon className="h-5 w-5 text-red-600 mt-0.5" />
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">
+                Error loading policies
+              </h3>
+              <p className="text-sm text-red-700 mt-1">{policiesError}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+              >
+                Try again
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Policy Filter */}
+          <div className="mb-6">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium text-gray-700">
+                Filter by type:
+              </span>
+              {["All", "Two-Wheeler", "Four-Wheeler"].map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setPolicyFilter(type)}
+                  className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                    policyFilter === type
+                      ? "bg-indigo-600 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          </div>
 
-              {/* Policy Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                {filteredPolicies.map((policy) => (
-                  <div
-                    key={policy.id}
-                    className={`border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
-                      formData.selectedPolicy?.id === policy.id 
-                        ? "border-indigo-500 bg-indigo-50" 
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                    onClick={() => handlePolicySelection(policy)}
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+          {/* Show results count */}
+          {filteredPolicies.length > 0 && (
+            <div className="mb-4">
+              <p className="text-sm text-gray-600">
+                Showing {filteredPolicies.length} of {policies.length} policies
+                {policyFilter !== "All" && ` for ${policyFilter}`}
+              </p>
+            </div>
+          )}
+
+          {/* Policy Grid */}
+          {filteredPolicies.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {filteredPolicies.map((policy) => (
+                <div
+                  key={policy.id}
+                  className={`border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
+                    formData.selectedPolicy?.id === policy.id
+                      ? "border-indigo-500 bg-indigo-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                  onClick={() => handlePolicySelection(policy)}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <span
+                        className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
                           policy.type === "Two-Wheeler"
                             ? "bg-emerald-100 text-emerald-700"
                             : "bg-blue-100 text-blue-700"
-                        }`}>
-                          {policy.type}
-                        </span>
-                        <h3 className="font-semibold text-gray-800 mt-2">{policy.name}</h3>
-                        <p className="text-sm text-gray-500">ID: {policy.id}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-indigo-600">₹{policy.premium}</p>
-                        <p className="text-xs text-gray-500">/year</p>
-                      </div>
+                        }`}
+                      >
+                        {policy.type}
+                      </span>
+                      <h3 className="font-semibold text-gray-800 mt-2">
+                        {policy.name}
+                      </h3>
+                      <p className="text-sm text-gray-500">ID: {policy.id}</p>
                     </div>
-                    <p className="text-sm text-gray-600">{policy.coverage}</p>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-indigo-600">
+                        ₹{policy.premium?.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-gray-500">/year</p>
+                    </div>
                   </div>
-                ))}
-              </div>
-
-              <div className="flex justify-between pt-6 border-t">
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep(1)}
-                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center"
-                >
-                  <ChevronLeftIcon className="w-4 h-4 mr-2" />
-                  Back
-                </button>
-                {formData.selectedPolicy && (
+                  <p className="text-sm text-gray-600">{policy.coverage}</p>
+                  {policy.validity && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Validity: {policy.validity}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="max-w-md mx-auto">
+                <div className="text-gray-400 mb-4">
+                  <DocumentTextIcon className="mx-auto h-12 w-12" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-800 mb-2">
+                  No Policies Found
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  {policyFilter === "All"
+                    ? "No policies are available at the moment."
+                    : `No policies found for ${policyFilter} category.`}
+                </p>
+                {policyFilter !== "All" && (
                   <button
-                    type="button"
-                    onClick={() => setCurrentStep(3)}
-                    className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center"
+                    onClick={() => setPolicyFilter("All")}
+                    className="px-4 py-2 text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors"
                   >
-                    Continue
-                    <ChevronRightIcon className="w-4 h-4 ml-2" />
+                    View All Policies
                   </button>
                 )}
               </div>
             </div>
           )}
+        </>
+      )}
+
+      <div className="flex justify-between pt-6 border-t">
+        <button
+          type="button"
+          onClick={() => setCurrentStep(1)}
+          className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center"
+        >
+          <ChevronLeftIcon className="w-4 h-4 mr-2" />
+          Back
+        </button>
+        {formData.selectedPolicy && (
+          <button
+            type="button"
+            onClick={() => setCurrentStep(3)}
+            className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center"
+          >
+            Continue
+            <ChevronRightIcon className="w-4 h-4 ml-2" />
+          </button>
+        )}
+      </div>
+    </div>
+  )}
 
           {/* Step 3: Vehicle Details */}
           {currentStep === 3 && (
             <div>
               <div className="border-b pb-4 mb-6">
-                <h1 className="text-2xl font-semibold text-gray-800">Vehicle Details</h1>
-                <p className="text-gray-600 mt-1">Enter the vehicle information</p>
+                <h1 className="text-2xl font-semibold text-gray-800">
+                  Vehicle Details
+                </h1>
+                <p className="text-gray-600 mt-1">
+                  Enter the vehicle information
+                </p>
               </div>
 
               <Formik
@@ -488,7 +694,9 @@ export const CreatePolicy = () => {
                   model: "",
                   manufacturer: "",
                   yearOfPurchase: currentYear,
-                  insuredValue: getInsuredValueOptions(formData.selectedPolicy.type)[2],
+                  insuredValue: getInsuredValueOptions(
+                    formData.selectedPolicy.type
+                  )[2],
                   policyTerm: 1,
                 }}
                 validationSchema={vehicleDetailsSchema}
@@ -502,62 +710,92 @@ export const CreatePolicy = () => {
                         name="registrationNumber"
                         placeholder="KA01AB1234"
                       />
-                      
+
                       <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-700">Manufacturer</label>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Manufacturer
+                        </label>
                         <select
                           name="manufacturer"
                           value={values.manufacturer}
-                          onChange={(e) => setFieldValue("manufacturer", e.target.value)}
+                          onChange={(e) =>
+                            setFieldValue("manufacturer", e.target.value)
+                          }
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         >
                           <option value="">Select manufacturer</option>
                           {manufacturers.map((mfr) => (
-                            <option key={mfr} value={mfr}>{mfr}</option>
+                            <option key={mfr} value={mfr}>
+                              {mfr}
+                            </option>
                           ))}
                         </select>
                       </div>
-                      
+
                       <FormInput
                         label="Model"
                         name="model"
                         placeholder="e.g., Swift, Activa"
                       />
-                      
+
                       <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-700">Year of Purchase</label>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Year of Purchase
+                        </label>
                         <select
                           name="yearOfPurchase"
                           value={values.yearOfPurchase}
-                          onChange={(e) => setFieldValue("yearOfPurchase", Number(e.target.value))}
+                          onChange={(e) =>
+                            setFieldValue(
+                              "yearOfPurchase",
+                              Number(e.target.value)
+                            )
+                          }
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         >
                           {years.map((year) => (
-                            <option key={year} value={year}>{year}</option>
+                            <option key={year} value={year}>
+                              {year}
+                            </option>
                           ))}
                         </select>
                       </div>
 
                       <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-700">Insured Value (IDV)</label>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Insured Value (IDV)
+                        </label>
                         <select
                           name="insuredValue"
                           value={values.insuredValue}
-                          onChange={(e) => setFieldValue("insuredValue", Number(e.target.value))}
+                          onChange={(e) =>
+                            setFieldValue(
+                              "insuredValue",
+                              Number(e.target.value)
+                            )
+                          }
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         >
-                          {getInsuredValueOptions(formData.selectedPolicy.type).map((value) => (
-                            <option key={value} value={value}>₹{value.toLocaleString()}</option>
+                          {getInsuredValueOptions(
+                            formData.selectedPolicy.type
+                          ).map((value) => (
+                            <option key={value} value={value}>
+                              ₹{value.toLocaleString()}
+                            </option>
                           ))}
                         </select>
                       </div>
-                      
+
                       <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-700">Policy Term</label>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Policy Term
+                        </label>
                         <select
                           name="policyTerm"
                           value={values.policyTerm}
-                          onChange={(e) => setFieldValue("policyTerm", Number(e.target.value))}
+                          onChange={(e) =>
+                            setFieldValue("policyTerm", Number(e.target.value))
+                          }
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         >
                           <option value={1}>1 Year</option>
@@ -595,91 +833,156 @@ export const CreatePolicy = () => {
           {currentStep === 4 && (
             <div>
               <div className="border-b pb-4 mb-6">
-                <h1 className="text-2xl font-semibold text-gray-800">Review & Confirm</h1>
-                <p className="text-gray-600 mt-1">Please review all details before creating the policy</p>
+                <h1 className="text-2xl font-semibold text-gray-800">
+                  Review & Confirm
+                </h1>
+                <p className="text-gray-600 mt-1">
+                  Please review all details before creating the policy
+                </p>
               </div>
 
               <div className="space-y-6">
                 {/* Customer Details */}
                 <div className="bg-gray-50 p-5 rounded-lg">
-                  <h3 className="font-medium text-gray-800 mb-3">Customer Information</h3>
+                  <h3 className="font-medium text-gray-800 mb-3">
+                    Customer Information
+                  </h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-gray-500">Name</p>
-                      <p className="font-medium">{formData.selectedCustomer.name}</p>
+                      <p className="font-medium">
+                        {formData.selectedCustomer.name}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Email</p>
-                      <p className="font-medium">{formData.selectedCustomer.email}</p>
+                      <p className="font-medium">
+                        {formData.selectedCustomer.email}
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 {/* Policy Details */}
                 <div className="bg-gray-50 p-5 rounded-lg">
-                  <h3 className="font-medium text-gray-800 mb-3">Policy Information</h3>
+                  <h3 className="font-medium text-gray-800 mb-3">
+                    Policy Information
+                  </h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-gray-500">Policy Name</p>
-                      <p className="font-medium">{formData.selectedPolicy.name}</p>
+                      <p className="font-medium">
+                        {formData.selectedPolicy.name}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Policy Type</p>
-                      <p className="font-medium">{formData.selectedPolicy.type}</p>
+                      <p className="font-medium">
+                        {formData.selectedPolicy.type}
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 {/* Vehicle Details */}
                 <div className="bg-gray-50 p-5 rounded-lg">
-                  <h3 className="font-medium text-gray-800 mb-3">Vehicle Details</h3>
+                  <h3 className="font-medium text-gray-800 mb-3">
+                    Vehicle Details
+                  </h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-gray-500">Registration Number</p>
-                      <p className="font-medium">{formData.vehicleDetails.registrationNumber}</p>
+                      <p className="text-sm text-gray-500">
+                        Registration Number
+                      </p>
+                      <p className="font-medium">
+                        {formData.vehicleDetails.registrationNumber}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Vehicle</p>
-                      <p className="font-medium">{formData.vehicleDetails.manufacturer} {formData.vehicleDetails.model}</p>
+                      <p className="font-medium">
+                        {formData.vehicleDetails.manufacturer}{" "}
+                        {formData.vehicleDetails.model}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Year</p>
-                      <p className="font-medium">{formData.vehicleDetails.yearOfPurchase}</p>
+                      <p className="font-medium">
+                        {formData.vehicleDetails.yearOfPurchase}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Policy Term</p>
-                      <p className="font-medium">{formData.vehicleDetails.policyTerm} Year(s)</p>
+                      <p className="font-medium">
+                        {formData.vehicleDetails.policyTerm} Year(s)
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 {/* Pricing Summary */}
                 <div className="bg-indigo-50 p-5 rounded-lg border border-indigo-100">
-                  <h3 className="font-medium text-gray-800 mb-4">Pricing Summary</h3>
+                  <h3 className="font-medium text-gray-800 mb-4">
+                    Pricing Summary
+                  </h3>
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <p className="text-gray-600">Base Premium</p>
-                      <p className="font-medium">₹{formData.selectedPolicy.premium.toLocaleString()}/year</p>
+                      <p className="font-medium">
+                        ₹{formData.selectedPolicy.premium.toLocaleString()}/year
+                      </p>
                     </div>
                     <div className="flex justify-between">
                       <p className="text-gray-600">Policy Term</p>
-                      <p className="font-medium">{formData.vehicleDetails.policyTerm} Year(s)</p>
+                      <p className="font-medium">
+                        {formData.vehicleDetails.policyTerm} Year(s)
+                      </p>
                     </div>
                     <div className="flex justify-between">
                       <p className="text-gray-600">Total Premium</p>
-                      <p className="font-medium">₹{calculatePremium(formData.vehicleDetails.policyTerm).toLocaleString()}</p>
+                      <p className="font-medium">
+                        ₹
+                        {calculatePremium(
+                          formData.vehicleDetails.policyTerm
+                        ).toLocaleString()}
+                      </p>
                     </div>
                     <div className="flex justify-between">
                       <p className="text-gray-600">Tax (12%)</p>
-                      <p className="font-medium">₹{calculateTax(calculatePremium(formData.vehicleDetails.policyTerm)).toLocaleString()}</p>
+                      <p className="font-medium">
+                        ₹
+                        {calculateTax(
+                          calculatePremium(formData.vehicleDetails.policyTerm)
+                        ).toLocaleString()}
+                      </p>
                     </div>
                     <div className="border-t pt-2 mt-2 flex justify-between">
-                      <p className="font-semibold text-gray-800">Total Amount</p>
-                      <p className="font-bold text-indigo-600">₹{(calculatePremium(formData.vehicleDetails.policyTerm) + calculateTax(calculatePremium(formData.vehicleDetails.policyTerm))).toLocaleString()}</p>
+                      <p className="font-semibold text-gray-800">
+                        Total Amount
+                      </p>
+                      <p className="font-bold text-indigo-600">
+                        ₹
+                        {(
+                          calculatePremium(formData.vehicleDetails.policyTerm) +
+                          calculateTax(
+                            calculatePremium(formData.vehicleDetails.policyTerm)
+                          )
+                        ).toLocaleString()}
+                      </p>
                     </div>
                     <div className="flex justify-between text-sm">
                       <p className="text-green-600">Your Commission (5%)</p>
-                      <p className="font-medium text-green-600">₹{calculateCommission(calculatePremium(formData.vehicleDetails.policyTerm) + calculateTax(calculatePremium(formData.vehicleDetails.policyTerm))).toLocaleString()}</p>
+                      <p className="font-medium text-green-600">
+                        ₹
+                        {calculateCommission(
+                          calculatePremium(formData.vehicleDetails.policyTerm) +
+                            calculateTax(
+                              calculatePremium(
+                                formData.vehicleDetails.policyTerm
+                              )
+                            )
+                        ).toLocaleString()}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -701,7 +1004,10 @@ export const CreatePolicy = () => {
                   >
                     {isSubmitting ? (
                       <>
-                        <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
+                        <svg
+                          className="animate-spin h-4 w-4 mr-2"
+                          viewBox="0 0 24 24"
+                        >
                           <circle
                             className="opacity-25"
                             cx="12"

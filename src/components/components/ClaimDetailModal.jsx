@@ -18,7 +18,7 @@ import {
 import { format } from "date-fns";
 import { toast } from "react-hot-toast";
 
-export const ClaimDetailModal = ({ claim, isOpen, onClose, onApprove, onReject }) => {
+export const ClaimDetailModal = ({ claim, isOpen, onClose, onApprove, onReject, onClaimUpdate }) => {
   const [activeTab, setActiveTab] = useState("overview");
   const [actionNotes, setActionNotes] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -41,21 +41,12 @@ export const ClaimDetailModal = ({ claim, isOpen, onClose, onApprove, onReject }
     }
   };
 
-  const getPriorityBadge = (priority) => {
-    const priorityClasses = {
-      High: "bg-red-100 text-red-700 border-red-200",
-      Medium: "bg-amber-100 text-amber-700 border-amber-200",
-      Low: "bg-green-100 text-green-700 border-green-200"
-    };
-    return priorityClasses[priority] || "bg-gray-100 text-gray-700 border-gray-200";
-  };
-
   const getStatusBadge = (status) => {
     const statusClasses = {
       "FILED": "bg-blue-100 text-blue-700 border-blue-200",
-      "Under Review": "bg-amber-100 text-amber-700 border-amber-200",
-      "Approved": "bg-green-100 text-green-700 border-green-200",
-      "Rejected": "bg-red-100 text-red-700 border-red-200"
+      "UNDER_REVIEW": "bg-amber-100 text-amber-700 border-amber-200",
+      "APPROVED": "bg-green-100 text-green-700 border-green-200",
+      "REJECTED": "bg-red-100 text-red-700 border-red-200"
     };
     return statusClasses[status] || "bg-gray-100 text-gray-700 border-gray-200";
   };
@@ -68,11 +59,40 @@ export const ClaimDetailModal = ({ claim, isOpen, onClose, onApprove, onReject }
     
     setIsProcessing(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      onApprove(claim.id, actionNotes);
-      toast.success("Claim approved successfully!");
-      onClose();
+      console.log(`Approving claim ${claim.claimId}`);
+      
+      const response = await fetch(`http://localhost:8082/api/claims/${claim.claimId}/decision`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          decision: "APPROVED",
+          reason: actionNotes.trim()
+        })
+      });
+
+      if (response.ok) {
+        toast.success("Claim approved successfully!");
+        
+        // Update the claim in parent component
+        if (onClaimUpdate) {
+          onClaimUpdate(claim.claimId, 'APPROVED');
+        }
+        
+        // Call the onApprove callback if provided
+        if (onApprove) {
+          onApprove(claim.id, actionNotes);
+        }
+        
+        onClose();
+      } else {
+        const errorText = await response.text();
+        console.error(`Failed to approve claim: ${response.status} - ${errorText}`);
+        toast.error(`Failed to approve claim: ${response.status}`);
+      }
     } catch (error) {
+      console.error('Error approving claim:', error);
       toast.error("Failed to approve claim");
     } finally {
       setIsProcessing(false);
@@ -87,25 +107,59 @@ export const ClaimDetailModal = ({ claim, isOpen, onClose, onApprove, onReject }
     
     setIsProcessing(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      onReject(claim.id, actionNotes);
-      toast.success("Claim rejected successfully!");
-      onClose();
+      console.log(`Rejecting claim ${claim.claimId}`);
+      
+      const response = await fetch(`http://localhost:8082/api/claims/${claim.claimId}/decision`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          decision: "REJECTED",
+          reason: actionNotes.trim()
+        })
+      });
+
+      if (response.ok) {
+        toast.success("Claim rejected successfully!");
+        
+        // Update the claim in parent component
+        if (onClaimUpdate) {
+          onClaimUpdate(claim.claimId, 'REJECTED');
+        }
+        
+        // Call the onReject callback if provided
+        if (onReject) {
+          onReject(claim.id, actionNotes);
+        }
+        
+        onClose();
+      } else {
+        const errorText = await response.text();
+        console.error(`Failed to reject claim: ${response.status} - ${errorText}`);
+        toast.error(`Failed to reject claim: ${response.status}`);
+      }
     } catch (error) {
+      console.error('Error rejecting claim:', error);
       toast.error("Failed to reject claim");
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const canTakeAction = claim.status === "FILED" || claim.status === "Under Review";
+  const canTakeAction = (claim.status === "FILED" || claim.status === "UNDER_REVIEW");
 
   const tabs = [
     { id: "overview", name: "Overview", icon: DocumentTextIcon },
     { id: "incident", name: "Incident", icon: ExclamationTriangleIcon },
-    { id: "documents", name: "Documents", icon: ClipboardDocumentListIcon, count: claim.documents?.length || 0 },
     ...(canTakeAction ? [{ id: "action", name: "Action", icon: PencilIcon }] : [])
   ];
+
+  // Safe formatting function for numbers
+  const formatAmount = (amount) => {
+    const num = Number(amount);
+    return isNaN(num) ? "0" : num.toLocaleString();
+  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -124,9 +178,6 @@ export const ClaimDetailModal = ({ claim, isOpen, onClose, onApprove, onReject }
                 <div className="flex items-center space-x-2 mt-1">
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusBadge(claim.status)}`}>
                     {claim.status}
-                  </span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getPriorityBadge(claim.priority)}`}>
-                    {claim.priority} Priority
                   </span>
                 </div>
               </div>
@@ -177,9 +228,9 @@ export const ClaimDetailModal = ({ claim, isOpen, onClose, onApprove, onReject }
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div>
                         <p className="text-sm font-medium text-gray-500">Claim Amount</p>
-                        <p className="text-2xl font-bold text-indigo-600">₹{claim.amount.toLocaleString()}</p>
-                        {claim.estimatedAmount !== claim.amount && (
-                          <p className="text-sm text-gray-500">Est: ₹{claim.estimatedAmount.toLocaleString()}</p>
+                        <p className="text-2xl font-bold text-indigo-600">₹{formatAmount(claim.amount)}</p>
+                        {claim.estimatedAmount && claim.estimatedAmount !== claim.amount && (
+                          <p className="text-sm text-gray-500">Est: ₹{formatAmount(claim.estimatedAmount)}</p>
                         )}
                       </div>
                       <div>
@@ -188,7 +239,7 @@ export const ClaimDetailModal = ({ claim, isOpen, onClose, onApprove, onReject }
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-500">Incident Date</p>
-                        <p className="text-lg font-semibold text-gray-800">{formatSimpleDate(claim.incidentDate)}</p>
+                        <p className="text-lg font-semibold text-gray-800">{formatSimpleDate(claim.incidentDate || claim.submittedDate)}</p>
                       </div>
                     </div>
                   </div>
@@ -200,15 +251,15 @@ export const ClaimDetailModal = ({ claim, isOpen, onClose, onApprove, onReject }
                       <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                         <div>
                           <label className="text-sm font-medium text-gray-500">Name</label>
-                          <p className="text-gray-800">{claim.customerName}</p>
+                          <p className="text-gray-800">{claim.customerName || 'N/A'}</p>
                         </div>
                         <div>
                           <label className="text-sm font-medium text-gray-500">Email</label>
-                          <p className="text-gray-800">{claim.customerEmail}</p>
+                          <p className="text-gray-800">{claim.customerEmail || 'N/A'}</p>
                         </div>
                         <div>
                           <label className="text-sm font-medium text-gray-500">Customer ID</label>
-                          <p className="text-gray-800">{claim.customerId}</p>
+                          <p className="text-gray-800">{claim.customerId || 'N/A'}</p>
                         </div>
                       </div>
                     </div>
@@ -219,36 +270,42 @@ export const ClaimDetailModal = ({ claim, isOpen, onClose, onApprove, onReject }
                       <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                         <div>
                           <label className="text-sm font-medium text-gray-500">Policy Name</label>
-                          <p className="text-gray-800">{claim.policyName}</p>
+                          <p className="text-gray-800">{claim.policyName || 'N/A'}</p>
                         </div>
                         <div>
                           <label className="text-sm font-medium text-gray-500">Policy ID</label>
-                          <p className="text-gray-800">{claim.policyId}</p>
+                          <p className="text-gray-800">{claim.policyId || 'N/A'}</p>
                         </div>
                         <div>
                           <label className="text-sm font-medium text-gray-500">Vehicle Registration</label>
-                          <p className="text-gray-800">{claim.vehicleRegNo}</p>
+                          <p className="text-gray-800">{claim.vehicleRegNo || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Vehicle</label>
+                          <p className="text-gray-800">{claim.vehicle || 'N/A'}</p>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Agent Information */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-gray-800">Assigned Agent</h3>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-sm font-medium text-gray-500">Agent Name</label>
-                          <p className="text-gray-800">{claim.agentName}</p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-500">Agent ID</label>
-                          <p className="text-gray-800">{claim.agentId}</p>
+                  {(claim.agentName || claim.agentId) && (
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium text-gray-800">Assigned Agent</h3>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-sm font-medium text-gray-500">Agent Name</label>
+                            <p className="text-gray-800">{claim.agentName || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-500">Agent ID</label>
+                            <p className="text-gray-800">{claim.agentId || 'N/A'}</p>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Timeline */}
                   <div className="space-y-4">
@@ -256,8 +313,13 @@ export const ClaimDetailModal = ({ claim, isOpen, onClose, onApprove, onReject }
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <div className="space-y-2 text-sm text-gray-600">
                         <p>• Submitted: {formatDate(claim.submittedDate)}</p>
-                        <p>• Last Updated: {formatDate(claim.lastUpdated)}</p>
+                        {claim.lastUpdated && (
+                          <p>• Last Updated: {formatDate(claim.lastUpdated)}</p>
+                        )}
                         <p>• Current Status: {claim.status}</p>
+                        {claim.verified !== undefined && (
+                          <p>• Verified: {claim.verified ? 'Yes' : 'No'}</p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -268,50 +330,95 @@ export const ClaimDetailModal = ({ claim, isOpen, onClose, onApprove, onReject }
                 <div className="space-y-6">
                   <h3 className="text-lg font-medium text-gray-800">Incident Details</h3>
                   
-                  {/* Accident Information */}
+                  {/* Basic Incident Information */}
                   <div className="bg-gray-50 rounded-lg p-6">
                     <h4 className="flex items-center text-md font-medium text-gray-800 mb-4">
                       <ExclamationTriangleIcon className="h-5 w-5 mr-2" />
-                      Accident Information
+                      Basic Information
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-4">
                         <div>
-                          <label className="text-sm font-medium text-gray-500">Location</label>
+                          <label className="text-sm font-medium text-gray-500">Incident Date</label>
                           <p className="text-gray-800 flex items-center mt-1">
-                            <MapPinIcon className="h-4 w-4 mr-2" />
-                            {claim.accidentDetails.location}
+                            <CalendarIcon className="h-4 w-4 mr-2" />
+                            {formatSimpleDate(claim.incidentDate || claim.submittedDate)}
                           </p>
                         </div>
                         <div>
-                          <label className="text-sm font-medium text-gray-500">Weather Conditions</label>
-                          <p className="text-gray-800 flex items-center mt-1">
-                            <CloudIcon className="h-4 w-4 mr-2" />
-                            {claim.accidentDetails.weather}
-                          </p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-500">Time of Day</label>
-                          <p className="text-gray-800 flex items-center mt-1">
-                            <ClockIcon className="h-4 w-4 mr-2" />
-                            {claim.accidentDetails.timeOfDay}
-                          </p>
+                          <label className="text-sm font-medium text-gray-500">Claim Type</label>
+                          <p className="text-gray-800">{claim.claimType || 'Vehicle Insurance Claim'}</p>
                         </div>
                       </div>
                       <div className="space-y-4">
                         <div>
-                          <label className="text-sm font-medium text-gray-500">Police Report Filed</label>
-                          <p className={`font-medium mt-1 ${claim.accidentDetails.policeReport === 'Yes' ? 'text-green-600' : 'text-red-600'}`}>
-                            {claim.accidentDetails.policeReport}
-                          </p>
+                          <label className="text-sm font-medium text-gray-500">Status</label>
+                          <p className="text-gray-800">{claim.status}</p>
                         </div>
                         <div>
-                          <label className="text-sm font-medium text-gray-500">Number of Witnesses</label>
-                          <p className="text-gray-800 mt-1">{claim.accidentDetails.witnesses}</p>
+                          <label className="text-sm font-medium text-gray-500">Estimated Repair Cost</label>
+                          <p className="text-gray-800">₹{formatAmount(claim.estimatedRepairCost || claim.amount)}</p>
                         </div>
                       </div>
                     </div>
                   </div>
+
+                  {/* Advanced Incident Details (if available) */}
+                  {claim.accidentDetails && (
+                    <div className="bg-gray-50 rounded-lg p-6">
+                      <h4 className="flex items-center text-md font-medium text-gray-800 mb-4">
+                        <ExclamationTriangleIcon className="h-5 w-5 mr-2" />
+                        Accident Information
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          {claim.accidentDetails.location && (
+                            <div>
+                              <label className="text-sm font-medium text-gray-500">Location</label>
+                              <p className="text-gray-800 flex items-center mt-1">
+                                <MapPinIcon className="h-4 w-4 mr-2" />
+                                {claim.accidentDetails.location}
+                              </p>
+                            </div>
+                          )}
+                          {claim.accidentDetails.weather && (
+                            <div>
+                              <label className="text-sm font-medium text-gray-500">Weather Conditions</label>
+                              <p className="text-gray-800 flex items-center mt-1">
+                                <CloudIcon className="h-4 w-4 mr-2" />
+                                {claim.accidentDetails.weather}
+                              </p>
+                            </div>
+                          )}
+                          {claim.accidentDetails.timeOfDay && (
+                            <div>
+                              <label className="text-sm font-medium text-gray-500">Time of Day</label>
+                              <p className="text-gray-800 flex items-center mt-1">
+                                <ClockIcon className="h-4 w-4 mr-2" />
+                                {claim.accidentDetails.timeOfDay}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="space-y-4">
+                          {claim.accidentDetails.policeReport !== undefined && (
+                            <div>
+                              <label className="text-sm font-medium text-gray-500">Police Report Filed</label>
+                              <p className={`font-medium mt-1 ${claim.accidentDetails.policeReport === 'Yes' ? 'text-green-600' : 'text-red-600'}`}>
+                                {claim.accidentDetails.policeReport}
+                              </p>
+                            </div>
+                          )}
+                          {claim.accidentDetails.witnesses !== undefined && (
+                            <div>
+                              <label className="text-sm font-medium text-gray-500">Number of Witnesses</label>
+                              <p className="text-gray-800 mt-1">{claim.accidentDetails.witnesses}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Description */}
                   <div className="bg-gray-50 rounded-lg p-6">
@@ -320,39 +427,20 @@ export const ClaimDetailModal = ({ claim, isOpen, onClose, onApprove, onReject }
                       Incident Description
                     </h4>
                     <p className="text-gray-700 leading-relaxed bg-white p-4 rounded border">
-                      {claim.description}
+                      {claim.description || claim.briefDescription || 'No description provided'}
                     </p>
                   </div>
-                </div>
-              )}
 
-              {activeTab === "documents" && (
-                <div className="space-y-6">
-                  <h3 className="text-lg font-medium text-gray-800">Supporting Documents</h3>
-                  {claim.documents && claim.documents.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {claim.documents.map((doc, index) => (
-                        <div key={index} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <span className="text-3xl mr-3">📄</span>
-                              <div>
-                                <p className="font-medium text-gray-800">{doc}</p>
-                                <p className="text-sm text-gray-500">Document {index + 1}</p>
-                              </div>
-                            </div>
-                            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                              <EyeIcon className="h-5 w-5 text-gray-500" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <ClipboardDocumentListIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                      <h3 className="text-lg font-medium text-gray-800 mb-2">No Documents</h3>
-                      <p className="text-gray-500">No supporting documents have been uploaded for this claim.</p>
+                  {/* Verification Comments */}
+                  {claim.verificationComments && (
+                    <div className="bg-gray-50 rounded-lg p-6">
+                      <h4 className="flex items-center text-md font-medium text-gray-800 mb-4">
+                        <ShieldCheckIcon className="h-5 w-5 mr-2" />
+                        Verification Comments
+                      </h4>
+                      <p className="text-gray-700 leading-relaxed bg-white p-4 rounded border">
+                        {claim.verificationComments}
+                      </p>
                     </div>
                   )}
                 </div>
