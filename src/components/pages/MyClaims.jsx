@@ -185,7 +185,7 @@ export const MyClaims = () => {
                 <div>
                   <p className="text-xs text-gray-500">Verification Status</p>
                   <p className="font-medium">
-                    {claim.verified ? <span className="text-green-600">Verified</span> : <span className="text-amber-600">Pending</span>}
+                    {claim.verified ? <span className="text-green-600">Verified</span> : <span className="text-amber-600">{claim.status}</span>}
                   </p>
                 </div>
               </div>

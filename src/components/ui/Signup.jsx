@@ -6,7 +6,7 @@ import { FormInput } from "../components/FormInput";
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 
-// Validation schema for the signup form
+// Validation schema object for the signup form using Yup object
 const validationSchema = Yup.object({
   name: Yup.string().required("Name is required"),
   email: Yup.string()

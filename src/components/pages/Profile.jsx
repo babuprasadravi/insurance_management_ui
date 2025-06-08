@@ -23,7 +23,8 @@ export const Profile = () => {
   });
   const [tempData, setTempData] = useState({ ...formData });
 
-  // Fetch user profile data
+  // Fetch user profile data - initial load
+  // This function fetches the user profile data from the server
   const fetchUserProfile = async () => {
     setIsFetching(true);
     setFetchError("");

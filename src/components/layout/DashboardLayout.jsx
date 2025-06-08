@@ -4,7 +4,7 @@ import { DashboardNavbar } from "./DashboardNavbar";
 
 export const DashboardLayout = ({ menuItems, children }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
+  
   return (
     <div className="flex h-screen bg-slate-50">
       <DashboardSidebar

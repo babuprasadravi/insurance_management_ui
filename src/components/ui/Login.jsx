@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useAuth } from "../../context/AuthProvider";
 
-// Validation schema for the login form
+// Validation schema for the login form - using Yup for form validation
 const validationSchema = Yup.object({
   email: Yup.string()
     .email("Invalid email address")
