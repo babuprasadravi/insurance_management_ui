@@ -11,6 +11,7 @@ import { WelcomeBanner } from "../ui/WelcomeBanner";
 import { customerMenuItems } from "../../constants/data";
 import { useAuth } from "../../context/AuthProvider";
 import { ClipLoader } from "react-spinners";
+import { DashboardOverviewCard } from "../ui/DashboardOverviewCard";
 
 export const CustomerDashboard = () => {
   const { user } = useAuth();
@@ -29,22 +30,22 @@ export const CustomerDashboard = () => {
   // Fetch available policies count
   const fetchBrowsePolicies = useCallback(async () => {
     try {
-      setDashboardData(prev => ({
+      setDashboardData((prev) => ({
         ...prev,
-        browsePolicies: { ...prev.browsePolicies, loading: true, error: null }
+        browsePolicies: { ...prev.browsePolicies, loading: true, error: null },
       }));
 
       const response = await axios.get("http://localhost:8084/api/policies");
       const count = response.data.length;
 
-      setDashboardData(prev => ({
+      setDashboardData((prev) => ({
         ...prev,
-        browsePolicies: { value: count, loading: false, error: null }
+        browsePolicies: { value: count, loading: false, error: null },
       }));
     } catch (error) {
-      setDashboardData(prev => ({
+      setDashboardData((prev) => ({
         ...prev,
-        browsePolicies: { value: null, loading: false, error: "Error" }
+        browsePolicies: { value: null, loading: false, error: "Error" },
       }));
     }
   }, []);
@@ -54,22 +55,24 @@ export const CustomerDashboard = () => {
     if (!user?.id) return;
 
     try {
-      setDashboardData(prev => ({
+      setDashboardData((prev) => ({
         ...prev,
-        myPolicies: { ...prev.myPolicies, loading: true, error: null }
+        myPolicies: { ...prev.myPolicies, loading: true, error: null },
       }));
 
-      const response = await axios.get(`http://localhost:8084/api/policies/customer/${user.id}`);
+      const response = await axios.get(
+        `http://localhost:8084/api/policies/customer/${user.id}`
+      );
       const count = response.data.length;
 
-      setDashboardData(prev => ({
+      setDashboardData((prev) => ({
         ...prev,
-        myPolicies: { value: count, loading: false, error: null }
+        myPolicies: { value: count, loading: false, error: null },
       }));
     } catch (error) {
-      setDashboardData(prev => ({
+      setDashboardData((prev) => ({
         ...prev,
-        myPolicies: { value: null, loading: false, error: "Error" }
+        myPolicies: { value: null, loading: false, error: "Error" },
       }));
     }
   }, [user?.id]);
@@ -79,29 +82,32 @@ export const CustomerDashboard = () => {
     if (!user?.id) return;
 
     try {
-      setDashboardData(prev => ({
+      setDashboardData((prev) => ({
         ...prev,
-        activeClaims: { ...prev.activeClaims, loading: true, error: null }
+        activeClaims: { ...prev.activeClaims, loading: true, error: null },
       }));
 
-      const response = await axios.post("http://localhost:8082/api/claims/customer", {
-        customerId: user.id
-      });
-      
+      const response = await axios.post(
+        "http://localhost:8082/api/claims/customer",
+        {
+          customerId: user.id,
+        }
+      );
+
       const claims = response.data;
       // Count claims with status FILED or UNDER_REVIEW
-      const activeCount = claims.filter(claim => 
-        claim.status === 'FILED' || claim.status === 'UNDER_REVIEW'
+      const activeCount = claims.filter(
+        (claim) => claim.status === "FILED" || claim.status === "UNDER_REVIEW"
       ).length;
 
-      setDashboardData(prev => ({
+      setDashboardData((prev) => ({
         ...prev,
-        activeClaims: { value: activeCount, loading: false, error: null }
+        activeClaims: { value: activeCount, loading: false, error: null },
       }));
     } catch (error) {
-      setDashboardData(prev => ({
+      setDashboardData((prev) => ({
         ...prev,
-        activeClaims: { value: null, loading: false, error: "Error" }
+        activeClaims: { value: null, loading: false, error: "Error" },
       }));
     }
   }, [user?.id]);
@@ -117,50 +123,17 @@ export const CustomerDashboard = () => {
     ]);
   }, [user?.id, fetchBrowsePolicies, fetchMyPolicies, fetchActiveClaims]);
 
-  // Custom OverviewCard component with loading, error states, and navigation
-  const DashboardOverviewCard = ({ title, data, icon: Icon, className, onClick }) => {
-    if (data.loading) {
-      return (
-        <div className={`p-6 rounded-xl border ${className} flex items-center justify-center min-h-[120px]`}>
-          <ClipLoader size={24} color="#6366F1" />
-        </div>
-      );
-    }
-
-    const displayValue = data.error || data.value;
-    const isError = data.error !== null;
-
-    return (
-      <div 
-        className={`p-6 rounded-xl border ${className} cursor-pointer hover:shadow-lg transition-shadow duration-200`}
-        onClick={onClick}
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-600">{title}</p>
-            <p className={`text-2xl font-bold mt-2 ${isError ? 'text-red-500' : 'text-gray-900'}`}>
-              {displayValue ?? 'N/A'}
-            </p>
-          </div>
-          <div className={`p-3 rounded-full ${isError ? 'bg-red-100' : 'bg-white/50'}`}>
-            <Icon className={`h-6 w-6 ${isError ? 'text-red-500' : 'text-gray-700'}`} />
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   // Navigation handlers
   const handleBrowsePoliciesClick = () => {
-    navigate('/dashboard/browse-policies');
+    navigate("/dashboard/browse-policies");
   };
 
   const handleMyPoliciesClick = () => {
-    navigate('/dashboard/my-policies');
+    navigate("/dashboard/my-policies");
   };
 
   const handleActiveClaimsClick = () => {
-    navigate('/dashboard/claims');
+    navigate("/dashboard/claims");
   };
 
   // Initial data fetch and set up auto-refresh

@@ -7,12 +7,11 @@ import {
   CurrencyRupeeIcon,
 } from "@heroicons/react/24/outline";
 import { DashboardLayout } from "../layout/DashboardLayout";
-import { OverviewCard } from "../ui/OverviewCard";
 import { WelcomeBanner } from "../ui/WelcomeBanner";
 import { AgentMenuItems } from "../../constants/data";
 import { useAuth } from "../../context/AuthProvider";
 import { ClipLoader } from "react-spinners";
-
+import { DashboardOverviewCard } from "../ui/DashboardOverviewCard";
 export const AgentDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -32,43 +31,63 @@ export const AgentDashboard = () => {
     if (!user?.id) return;
 
     try {
-      setDashboardData(prev => ({
+      setDashboardData((prev) => ({
         ...prev,
-        assignedPolicies: { ...prev.assignedPolicies, loading: true, error: null },
-        totalCommission: { ...prev.totalCommission, loading: true, error: null }
+        assignedPolicies: {
+          ...prev.assignedPolicies,
+          loading: true,
+          error: null,
+        },
+        totalCommission: {
+          ...prev.totalCommission,
+          loading: true,
+          error: null,
+        },
       }));
 
-      const response = await axios.get(`http://localhost:8084/api/policies/agent/${user.id}`);
+      const response = await axios.get(
+        `http://localhost:8084/api/policies/agent/${user.id}`
+      );
       const policies = response.data;
       const count = policies.length;
 
       // Calculate total premium and commission (5%)
-      const totalPremium = policies.reduce((sum, policy) => sum + (policy.premium || 0), 0);
+      const totalPremium = policies.reduce(
+        (sum, policy) => sum + (policy.premium || 0),
+        0
+      );
       const commission = totalPremium * 0.05;
 
       // Format commission in Indian currency format
       const formatCurrency = (amount) => {
-        if (amount >= 10000000) { // 1 crore
+        if (amount >= 10000000) {
+          // 1 crore
           return `₹${(amount / 10000000).toFixed(1)}Cr`;
-        } else if (amount >= 100000) { // 1 lakh
+        } else if (amount >= 100000) {
+          // 1 lakh
           return `₹${(amount / 100000).toFixed(1)}L`;
-        } else if (amount >= 1000) { // 1 thousand
+        } else if (amount >= 1000) {
+          // 1 thousand
           return `₹${(amount / 1000).toFixed(1)}K`;
         } else {
-          return `₹${amount.toLocaleString('en-IN')}`;
+          return `₹${amount.toLocaleString("en-IN")}`;
         }
       };
 
-      setDashboardData(prev => ({
+      setDashboardData((prev) => ({
         ...prev,
         assignedPolicies: { value: count, loading: false, error: null },
-        totalCommission: { value: formatCurrency(commission), loading: false, error: null }
+        totalCommission: {
+          value: formatCurrency(commission),
+          loading: false,
+          error: null,
+        },
       }));
     } catch (error) {
-      setDashboardData(prev => ({
+      setDashboardData((prev) => ({
         ...prev,
         assignedPolicies: { value: null, loading: false, error: "Error" },
-        totalCommission: { value: null, loading: false, error: "Error" }
+        totalCommission: { value: null, loading: false, error: "Error" },
       }));
     }
   }, [user?.id]);
@@ -78,27 +97,29 @@ export const AgentDashboard = () => {
     if (!user?.id) return;
 
     try {
-      setDashboardData(prev => ({
+      setDashboardData((prev) => ({
         ...prev,
-        pendingClaims: { ...prev.pendingClaims, loading: true, error: null }
+        pendingClaims: { ...prev.pendingClaims, loading: true, error: null },
       }));
 
-      const response = await axios.get("http://localhost:8082/api/claims/myclaims");
+      const response = await axios.get(
+        "http://localhost:8082/api/claims/myclaims"
+      );
       const claims = response.data;
 
       // Count claims with status FILED or UNDER_REVIEW
-      const pendingCount = claims.filter(claim => 
-        claim.status === 'FILED' || claim.status === 'UNDER_REVIEW'
+      const pendingCount = claims.filter(
+        (claim) => claim.status === "FILED" || claim.status === "UNDER_REVIEW"
       ).length;
 
-      setDashboardData(prev => ({
+      setDashboardData((prev) => ({
         ...prev,
-        pendingClaims: { value: pendingCount, loading: false, error: null }
+        pendingClaims: { value: pendingCount, loading: false, error: null },
       }));
     } catch (error) {
-      setDashboardData(prev => ({
+      setDashboardData((prev) => ({
         ...prev,
-        pendingClaims: { value: null, loading: false, error: "Error" }
+        pendingClaims: { value: null, loading: false, error: "Error" },
       }));
     }
   }, [user?.id]);
@@ -113,46 +134,13 @@ export const AgentDashboard = () => {
     ]);
   }, [user?.id, fetchAssignedPoliciesAndCommission, fetchPendingClaims]);
 
-  // Custom OverviewCard component with loading, error states, and navigation
-  const DashboardOverviewCard = ({ title, data, icon: Icon, className, onClick }) => {
-    if (data.loading) {
-      return (
-        <div className={`p-6 rounded-xl border ${className} flex items-center justify-center min-h-[120px]`}>
-          <ClipLoader size={24} color="#6366F1" />
-        </div>
-      );
-    }
-
-    const displayValue = data.error || data.value;
-    const isError = data.error !== null;
-
-    return (
-      <div 
-        className={`p-6 rounded-xl border ${className} ${onClick ? 'cursor-pointer hover:shadow-lg transition-shadow duration-200' : ''}`}
-        onClick={onClick}
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-600">{title}</p>
-            <p className={`text-2xl font-bold mt-2 ${isError ? 'text-red-500' : 'text-gray-900'}`}>
-              {displayValue ?? 'N/A'}
-            </p>
-          </div>
-          <div className={`p-3 rounded-full ${isError ? 'bg-red-100' : 'bg-white/50'}`}>
-            <Icon className={`h-6 w-6 ${isError ? 'text-red-500' : 'text-gray-700'}`} />
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   // Navigation handlers
   const handleAssignedPoliciesClick = () => {
-    navigate('/agentDashboard/policies');
+    navigate("/agentDashboard/policies");
   };
 
   const handlePendingClaimsClick = () => {
-    navigate('/agentDashboard/claims');
+    navigate("/agentDashboard/claims");
   };
 
   // Total Commission stays on dashboard (no onClick)
