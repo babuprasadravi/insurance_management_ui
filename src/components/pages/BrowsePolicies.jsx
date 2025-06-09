@@ -77,7 +77,7 @@ export const BrowsePolicies = () => {
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium">Filter by:</span>
           <div className="flex space-x-2">
-            {["All", "Two-Wheeler", "x-Wheeler"].map((type) => (
+            {["All", "Two-Wheeler", "Four-Wheeler"].map((type) => (
               <button
                 key={type}
                 onClick={() => setFilter(type)}
